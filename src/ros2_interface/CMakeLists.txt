@@ -19,7 +19,12 @@ foreach(var_dependency ${var_dependencies})
 endforeach()
 
 set(msg_files
-    msg/PointArray.msg)
+    msg/PointArray.msg
+    msg/Terminal.msg
+    msg/TerminalArray.msg
+    msg/Apriltag.msg
+    msg/VisionUrban.msg
+    )
 set(srv_files srv/Dummy.srv)
 
 rosidl_generate_interfaces(

@@ -7,6 +7,7 @@ class MachineState
 {
 public:
     int16_t value;
+    int16_t prev_value;
     uint8_t intr_cntr;
     uint8_t prev_intr_cntr;
     std::chrono::system_clock::time_point uptime_timeout;
