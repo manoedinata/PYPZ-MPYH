@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title>ROS2 Template UI</title>
+  <link rel="stylesheet" href="./bulma.min.css">
+  <link rel="stylesheet" href="./index.css">
+  <script src="./roslib.min.js"></script>
+  <script src="./anime.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+
+</head>
+
+<body>
+  <nav class="navbar" role="navigation" aria-label="main navigation">
+    <div class="navbar-brand">
+      <a class="navbar-item" href="https://bulma.io">
+        <svg width="640" height="160" viewBox="0 0 640 160" fill="none" xmlns="http://www.w3.org/2000/svg"
+          class="navbar-svgs">
+          <path stroke="#3498db" stroke-width="10" fill="none"
+            d="M10,150 L100,150 L120,40 L140,150 L130,95 L110,95 L109,100 L135,100" />
+          <path stroke="#3498db" stroke-width="10" fill="none" d="M140,150 L160,40 L180,150 L200,40 L400,40" />
+        </svg>
+      </a>
+    </div>
+
+    <div id="navbarBasicExample" class="navbar-menu">
+      <div class="navbar-start">
+        <a class="navbar-item" href="./index.html">Home</a>
+        <a class="navbar-item" href="./ROS_if.html">ROS Interface</a>
+        <a class="navbar-item" href="./ROS_if_imv.html">ROS Image Viewer</a>
+        <a class="navbar-item" href="./ROS_config.html">ROS Config</a>
+      </div>
+    </div>
+  </nav>
+
+  <div class="container is-fluid">
+    <div class="grid" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem;">
+
+      <!-- Row 1 -->
+      <div class="cell" style="grid-column: span 1;">
+        <div class="box" id="robot-info-box">
+          <h2 class="title is-5">Robot Info</h2>
+          <div class="is-flex" style="gap: 1rem;">
+            <p><strong>Velocity:</strong> <span id="info-velocity">0.0</span> m/s</p>
+            <p><strong>Steering:</strong> <span id="info-steering">0.0</span> rad</p>
+            <p><strong>Lookahead:</strong> <span id="info-lookahead">0.0</span> m</p>
+          </div>
+          <div class="is-flex" style="gap: 1rem;">
+            <p><strong>Origin:</strong> <span id="info-lane">-</span></p>
+            <p><strong>State:</strong> <span id="info-fsm-urban">-</span></p>
+            <p><strong>Gyro:</strong> <span id="info-gyro">-</span></p>
+          </div>
+        </div>
+      </div>
+
+      <div class="cell" style="grid-column: span 3;">
+        <div class="box" id="button-box">
+          <h2 class="title is-4" id="mode-now">URBAN</h2>
+          <h2 class="title is-4" id="master_fsm">Mode: 0</h2>
+          <div class="buttons">
+            <button class="button is-info" onclick="set_master_fsm(0)">INIT</button>
+            <button class="button is-info" onclick="set_master_fsm(3)">Mode 3</button>
+            <button class="button is-info" id="mode-4" onclick="set_master_fsm(4)">Mode 4</button>
+            <button class="button is-info" onclick="set_master_fsm(5)">Mode 5</button>
+            <button class="button is-info" onclick="set_master_fsm(300)">Debug 1</button>
+            <button class="button is-info" onclick="set_master_fsm(301)">Debug 2</button>
+            <button class="button is-info" onclick="set_master_fsm(100)">Urban</button>
+            <!-- <button class="button is-warning" onclick="set_master_fsm(0)">TOGGLE MODE VISION</button> -->
+            <button class="button is-primary" id="toggle_lane" onclick="set_lane()">TOGGLE LANE</button>
+            <button class="button is-warning" id="info-debug" onclick="set_debug()">TOGGLE DEBUG</button>
+            <button class="button is-warning" id="info-debug2" onclick="set_debug2()">TOGGLE DEBUG2</button>
+
+          </div>
+        </div>
+      </div>
+
+
+
+      <!-- Row 3: Images -->
+      <div class="cell">
+        <div class="box"><img id="stdout1" src=""></div>
+      </div>
+      <div class="cell">
+        <div class="box"><img id="stdout2" src=""></div>
+      </div>
+      <div class="cell">
+        <div class="box"><img id="stdout3" src=""></div>
+      </div>
+
+      <!-- Sliders: Stays in column 4 and expands downward -->
+      <div class="cell" style="grid-column: 4; grid-row: 2;">
+        <div class="box" id="sliders-container" style="overflow-y: auto; max-height: 80vh;">
+          <!-- Sliders will be inserted here by script -->
+        </div>
+      </div>
+
+      <!-- Row 4: More Images -->
+      <div class="cell">
+        <div class="box"><img id="stdout4" src=""></div>
+      </div>
+      <div class="cell">
+        <div class="box"><img id="stdout5" src=""></div>
+      </div>
+      <div class="cell">
+        <div class="box"><img id="stdout6" src=""></div>
+      </div>
+
+      <div style="text-align: right; margin-top: 2rem;">
+        <button class="button is-link" id="toggle-config-btn" onclick="toggleConfigPanel()">
+          Hide Configuration Panel
+        </button>
+      </div>
+
+      <!-- Row 2: Configuration Panel -->
+      <div class="cell" style="grid-column: 1 / -1; grid-row: 6; ">
+        <div class="box" id="config-panel">
+          <h2 class="title is-5 has-text-info mb-4">Configuration Panel</h2>
+
+          <div class="columns is-multiline">
+            <!-- ?===========================================================  -->
+            <div class="column is-3">
+              <div class="field">
+                <label class="label" id="label-config-1">---</label>
+                <div class="control">
+                  <input id="config-1" class="input is-info" type="number" min="-100" value="1" />
+                </div>
+              </div>
+            </div>
+
+            <div class="column is-3">
+              <div class="field">
+                <label class="label" id="label-config-2">---</label>
+                <div class="control">
+                  <input id="config-2" class="input is-info" type="number" min="-100" value="1" />
+                </div>
+              </div>
+            </div>
+
+            <div class="column is-3">
+              <div class="field">
+                <label class="label" id="label-config-3">---</label>
+                <div class="control">
+                  <input id="config-3" class="input is-info" type="number" min="-100" value="1" />
+                </div>
+              </div>
+            </div>
+
+            <div class="column is-3">
+              <div class="field">
+                <label class="label" id="label-config-4">---</label>
+                <div class="control">
+                  <input id="config-4" class="input is-info" type="number" min="-100" value="1" />
+                </div>
+              </div>
+            </div>
+
+            <div class="column is-3">
+              <div class="field">
+                <label class="label" id="label-config-5">---</label>
+                <div class="control">
+                  <input id="config-5" class="input is-info" type="number" min="-100" value="1" />
+                </div>
+              </div>
+            </div>
+
+            <div class="column is-3">
+              <div class="field">
+                <label class="label" id="label-config-6">---</label>
+                <div class="control">
+                  <input id="config-6" class="input is-info" type="number" min="-100" value="1" />
+                </div>
+              </div>
+            </div>
+
+            <div class="column is-3">
+              <div class="field">
+                <label class="label" id="label-config-7">---</label>
+                <div class="control">
+                  <input id="config-7" class="input is-info" type="number" min="-100" value="1" />
+                </div>
+              </div>
+            </div>
+
+            <div class="column is-3">
+              <div class="field">
+                <label class="label" id="label-config-8">---</label>
+                <div class="control">
+                  <input id="config-8" class="input is-info" type="number" min="-100" value="1" />
+                </div>
+              </div>
+            </div>
+
+            <div class="column is-3">
+              <div class="field">
+                <label class="label" id="label-config-9">---</label>
+                <div class="control">
+                  <input id="config-9" class="input is-info" type="number" min="-100" value="1" />
+                </div>
+              </div>
+            </div>
+
+            <div class="column is-3">
+              <div class="field">
+                <label class="label" id="label-config-10">---</label>
+                <div class="control">
+                  <input id="config-10" class="input is-info" type="number" min="-100" value="1" />
+                </div>
+              </div>
+            </div>
+
+            <div class="column is-3">
+              <div class="field">
+                <label class="label" id="label-config-11">---</label>
+                <div class="control">
+                  <input id="config-11" class="input is-info" type="number" min="-100" value="1" />
+                </div>
+              </div>
+            </div>
+
+            <div class="column is-3">
+              <div class="field">
+                <label class="label" id="label-config-12">---</label>
+                <div class="control">
+                  <input id="config-12" class="input is-info" type="number" min="-100" value="1" />
+                </div>
+              </div>
+            </div>
+
+            <div class="column is-3">
+              <div class="field">
+                <label class="label" id="label-config-13">---</label>
+                <div class="control">
+                  <input id="config-13" class="input is-info" type="number" min="-100" value="1" />
+                </div>
+              </div>
+            </div>
+
+            <div class="column is-3">
+              <div class="field">
+                <label class="label" id="label-config-14">---</label>
+                <div class="control">
+                  <input id="config-14" class="input is-info" type="number" min="-100" value="1" />
+                </div>
+              </div>
+            </div>
+
+            <div class="column is-3">
+              <div class="field">
+                <label class="label" id="label-config-15">---</label>
+                <div class="control">
+                  <input id="config-15" class="input is-info" type="number" min="-100" value="1" />
+                </div>
+              </div>
+            </div>
+
+            <div class="column is-3">
+              <div class="field">
+                <label class="label" id="label-config-16">---</label>
+                <div class="control">
+                  <input id="config-16" class="input is-info" type="number" min="-100" value="1" />
+                </div>
+              </div>
+            </div>
+
+            <div class="column is-3">
+              <div class="field">
+                <label class="label" id="label-config-17">---</label>
+                <div class="control">
+                  <input id="config-17" class="input is-info" type="number" min="-100" value="1" />
+                </div>
+              </div>
+            </div>
+
+            <div class="column is-3">
+              <div class="field">
+                <label class="label" id="label-config-18">---</label>
+                <div class="control">
+                  <input id="config-18" class="input is-info" type="number" min="-100" value="1" />
+                </div>
+              </div>
+            </div>
+
+            <div class="column is-3">
+              <div class="field">
+                <label class="label" id="label-config-19">---</label>
+                <div class="control">
+                  <input id="config-19" class="input is-info" type="number" min="-100" value="1" />
+                </div>
+              </div>
+            </div>
+
+            <div class="column is-3">
+              <div class="field">
+                <label class="label" id="label-config-20">---</label>
+                <div class="control">
+                  <input id="config-20" class="input is-info" type="number" min="-100" value="1" />
+                </div>
+              </div>
+            </div>
+
+            <div class="column is-3">
+              <div class="field">
+                <label class="label" id="label-config-21">---</label>
+                <div class="control">
+                  <input id="config-21" class="input is-info" type="number" min="-100" value="1" />
+                </div>
+              </div>
+            </div>
+
+            <div class="column is-3">
+              <div class="field">
+                <label class="label" id="label-config-22">---</label>
+                <div class="control">
+                  <input id="config-22" class="input is-info" type="number" min="-100" value="1" />
+                </div>
+              </div>
+            </div>
+            <div class="column is-3">
+              <div class="field">
+                <label class="label" id="label-config-23">---</label>
+                <div class="control">
+                  <input id="config-23" class="input is-info" type="number" min="-100" value="1" />
+                </div>
+              </div>
+            </div>
+            <div class="column is-3">
+              <div class="field">
+                <label class="label" id="label-config-24">---</label>
+                <div class="control">
+                  <input id="config-24" class="input is-info" type="number" min="-100" value="1" />
+                </div>
+              </div>
+            </div>
+            <div class="column is-3">
+              <div class="field">
+                <label class="label" id="label-config-25">---</label>
+                <div class="control">
+                  <input id="config-25" class="input is-info" type="number" min="-100" value="1" />
+                </div>
+              </div>
+            </div>
+            <div class="column is-3">
+              <div class="field">
+                <label class="label" id="label-config-26">---</label>
+                <div class="control">
+                  <input id="config-26" class="input is-info" type="number" min="-100" value="1" />
+                </div>
+              </div>
+            </div>
+            <div class="column is-3">
+              <div class="field">
+                <label class="label" id="label-config-27">---</label>
+                <div class="control">
+                  <input id="config-27" class="input is-info" type="number" min="-100" value="1" />
+                </div>
+              </div>
+            </div>
+            <div class="column is-3">
+              <div class="field">
+                <label class="label" id="label-config-28">---</label>
+                <div class="control">
+                  <input id="config-28" class="input is-info" type="number" min="-100" value="1" />
+                </div>
+              </div>
+            </div>
+            <div class="column is-3">
+              <div class="field">
+                <label class="label" id="label-config-29">---</label>
+                <div class="control">
+                  <input id="config-29" class="input is-info" type="number" min="-100" value="1" />
+                </div>
+              </div>
+            </div>
+            <div class="column is-3">
+              <div class="field">
+                <label class="label" id="label-config-30">---</label>
+                <div class="control">
+                  <input id="config-30" class="input is-info" type="number" min="-100" value="1" />
+                </div>
+              </div>
+            </div>
+            <div class="column is-3">
+              <div class="field">
+                <label class="label" id="label-config-31">---</label>
+                <div class="control">
+                  <input id="config-31" class="input is-info" type="number" min="-100" value="1" />
+                </div>
+              </div>
+            </div>
+            <div class="column is-3">
+              <div class="field">
+                <label class="label" id="label-config-32">---</label>
+                <div class="control">
+                  <input id="config-32" class="input is-info" type="number" min="-100" value="1" />
+                </div>
+              </div>
+            </div>
+            <div class="column is-3">
+              <div class="field">
+                <label class="label" id="label-config-33">---</label>
+                <div class="control">
+                  <input id="config-33" class="input is-info" type="number" min="-100" value="1" />
+                </div>
+              </div>
+            </div>
+            <div class="column is-3">
+              <div class="field">
+                <label class="label" id="label-config-34">---</label>
+                <div class="control">
+                  <input id="config-34" class="input is-info" type="number" min="-100" value="1" />
+                </div>
+              </div>
+            </div>
+            <div class="column is-3">
+              <div class="field">
+                <label class="label" id="label-config-35">---</label>
+                <div class="control">
+                  <input id="config-35" class="input is-info" type="number" min="-100" value="1" />
+                </div>
+              </div>
+            </div>
+            <div class="column is-3">
+              <div class="field">
+                <label class="label" id="label-config-36">---</label>
+                <div class="control">
+                  <input id="config-36" class="input is-info" type="number" min="-100" value="1" />
+                </div>
+              </div>
+            </div>
+            <div class="column is-3">
+              <div class="field">
+                <label class="label" id="label-config-37">---</label>
+                <div class="control">
+                  <input id="config-37" class="input is-info" type="number" min="-100" value="1" />
+                </div>
+              </div>
+            </div>
+            <div class="column is-3">
+              <div class="field">
+                <label class="label" id="label-config-38">---</label>
+                <div class="control">
+                  <input id="config-38" class="input is-info" type="number" min="-100" value="1" />
+                </div>
+              </div>
+            </div>
+            <div class="column is-3">
+              <div class="field">
+                <label class="label" id="label-config-39">---</label>
+                <div class="control">
+                  <input id="config-39" class="input is-info" type="number" min="-100" value="1" />
+                </div>
+              </div>
+            </div>
+            <div class="column is-3">
+              <div class="field">
+                <label class="label" id="label-config-40">---</label>
+                <div class="control">
+                  <input id="config-40" class="input is-info" type="number" min="-100" value="1" />
+                </div>
+              </div>
+            </div>
+            <div class="column is-3">
+              <div class="field">
+                <label class="label" id="label-config-41">---</label>
+                <div class="control">
+                  <input id="config-41" class="input is-info" type="number" min="-100" value="1" />
+                </div>
+              </div>
+            </div>
+            <div class="column is-3">
+              <div class="field">
+                <label class="label" id="label-config-42">---</label>
+                <div class="control">
+                  <input id="config-42" class="input is-info" type="number" min="-100" value="1" />
+                </div>
+              </div>
+            </div>
+            <div class="column is-3">
+              <div class="field">
+                <label class="label" id="label-config-43">---</label>
+                <div class="control">
+                  <input id="config-43" class="input is-info" type="number" min="-100" value="1" />
+                </div>
+              </div>
+            </div>
+            <div class="column is-3">
+              <div class="field">
+                <label class="label" id="label-config-44">---</label>
+                <div class="control">
+                  <input id="config-44" class="input is-info" type="number" min="-100" value="1" />
+                </div>
+              </div>
+            </div>
+            <div class="column is-3">
+              <div class="field">
+                <label class="label" id="label-config-45">---</label>
+                <div class="control">
+                  <input id="config-45" class="input is-info" type="number" min="-100" value="1" />
+                </div>
+              </div>
+            </div>
+            <div class="column is-3">
+              <div class="field">
+                <label class="label" id="label-config-46">---</label>
+                <div class="control">
+                  <input id="config-46" class="input is-info" type="number" min="-100" value="1" />
+                </div>
+              </div>
+            </div>
+            <div class="column is-3">
+              <div class="field">
+                <label class="label" id="label-config-47">---</label>
+                <div class="control">
+                  <input id="config-47" class="input is-info" type="number" min="-100" value="1" />
+                </div>
+              </div>
+            </div>
+            <div class="column is-3">
+              <div class="field">
+                <label class="label" id="label-config-48">---</label>
+                <div class="control">
+                  <input id="config-48" class="input is-info" type="number" min="-100" value="1" />
+                </div>
+              </div>
+            </div>
+            <div class="column is-3">
+              <div class="field">
+                <label class="label" id="label-config-49">---</label>
+                <div class="control">
+                  <input id="config-49" class="input is-info" type="number" min="-100" value="1" />
+                </div>
+              </div>
+            </div>
+            <div class="column is-3">
+              <div class="field">
+                <label class="label" id="label-config-50">---</label>
+                <div class="control">
+                  <input id="config-50" class="input is-info" type="number" min="-100" value="1" />
+                </div>
+              </div>
+            </div>
+            <div class="column is-3">
+              <div class="field">
+                <label class="label" id="label-config-51">---</label>
+                <div class="control">
+                  <input id="config-51" class="input is-info" type="number" min="-100" value="1" />
+                </div>
+              </div>
+            </div>
+            <div class="column is-3">
+              <div class="field">
+                <label class="label" id="label-config-52">---</label>
+                <div class="control">
+                  <input id="config-52" class="input is-info" type="number" min="-100" value="1" />
+                </div>
+              </div>
+            </div>
+            <div class="column is-3">
+              <div class="field">
+                <label class="label" id="label-config-53">---</label>
+                <div class="control">
+                  <input id="config-53" class="input is-info" type="number" min="-100" value="1" />
+                </div>
+              </div>
+            </div>
+            <div class="column is-3">
+              <div class="field">
+                <label class="label" id="label-config-54">---</label>
+                <div class="control">
+                  <input id="config-54" class="input is-info" type="number" min="-100" value="1" />
+                </div>
+              </div>
+            </div>
+
+            <!-- ?============================================================ -->
+          </div>
+
+          <div class="field is-grouped mt-4">
+            <div class="control">
+              <button class="button is-success" onclick="on_save_configuration()">Apply</button>
+            </div>
+            <div class="control">
+              <button class="button is-warning" onclick="on_reset_config()">Reset</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+
+  <script type="text/javascript" src="index.js"></script>
+  <script>
+    function toggleConfigPanel() {
+      var panel = document.getElementById("config-panel");
+      var btn = document.getElementById("toggle-config-btn");
+      if (panel.style.display === "none") {
+        panel.style.display = "";
+        btn.innerText = "Hide Configuration Panel";
+      } else {
+        panel.style.display = "none";
+        btn.innerText = "Show Configuration Panel";
+      }
+    }
+  </script>
+</body>
+
+
+
+</html>

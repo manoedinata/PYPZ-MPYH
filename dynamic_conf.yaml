@@ -1,0 +1,20 @@
+Motor:
+  k_p_wheel: 1.59239995
+  k_i_wheel: 7.13790035
+  k_p_steering: 0
+  k_d_steering: 0.100000001
+  wheel_radius: 0.0364999995
+  encoder_ppr: 147906.25
+  cnt_to_meter: 4.79875598e-06
+  max_steering_deg: 35
+  min_steering_deg: -35
+  max_steering_pwm: 1128
+  min_steering_pwm: 858
+  mid_steering_pwm: 1004
+  max_wheel_velocity_pwm: 6000
+  min_wheel_velocity_pwm: -6000
+  max_wheel_integral_pwm: 1200
+  min_wheel_integral_pwm: -1200
+  wheel_base: 0.219999999
+  tuning: 0
+  k_model: 0.000666189997

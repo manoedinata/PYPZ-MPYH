@@ -1,0 +1,34 @@
+int8 berhenti
+
+int16 pos_target_px_x
+int16 pos_target_px_y
+
+int16 pos_robot_px_x
+int16 pos_robot_px_y
+
+float32 dist_putih_meter
+float32 dist_near_zebracross
+
+float32 target_angle_ungu
+float32 target_angle_putih
+
+float32 meter_to_pixel
+float32 offset_angle_zebracross
+float32 offset_angle_lane
+
+float32 dist_near_zebracross_vertical
+float32 dist_near_zebracross_horizontal
+float32 dist_near_zebracross_vertical_kiri
+float32 dist_near_zebracross_vertical_kanan
+
+float32 centroid_sign_x
+float32 centroid_sign_y
+
+float32 centroid_obs_x
+float32 centroid_obs_y
+
+int8 jalan_berkelok
+int8 mask_jalan_bocor
+
+int8 ada_pertigaan
+float32 jarak_ke_pertigaan

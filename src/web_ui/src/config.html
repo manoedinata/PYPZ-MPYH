@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>ROS2 Template UI</title>
+    <link rel="stylesheet" href="./bulma.min.css">
+    <link rel="stylesheet" href="./index.css">
+    <script src="./roslib.min.js"></script>
+    <script src="./anime.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+
+<body>
+    <nav class="navbar" role="navigation" aria-label="main navigation">
+        <div class="navbar-brand">
+            <a class="navbar-item" href="https://bulma.io">
+                <svg width="640" height="160" viewBox="0 0 640 160" fill="none" xmlns="http://www.w3.org/2000/svg"
+                    class="navbar-svgs">
+                    <path stroke="#3498db" stroke-width="10" fill="none"
+                        d="M10,150 L100,150 L120,40 L140,150 L130,95 L110,95 L109,100 L135,100" />
+                    <path stroke="#3498db" stroke-width="10" fill="none"
+                        d="M140,150 L160,40 L180,150 L200,40 L400,40" />
+                </svg>
+            </a>
+        </div>
+
+        <div id="navbarBasicExample" class="navbar-menu">
+            <div class="navbar-start">
+                <a class="navbar-item" href="./index.html">Home</a>
+                <a class="navbar-item" href="./ROS_if.html">ROS Interface</a>
+                <a class="navbar-item" href="./ROS_if_imv.html">ROS Image Viewer</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container is-fluid">
+        <div class="grid" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem;">
+            <!-- Row 2: Configuration Panel -->
+            <div class="cell" style="grid-column: 1 / -2; grid-row: 6;">
+                <div class="box" id="config-panel">
+                    <h2 class="title is-5 has-text-info mb-4">Configuration Panel</h2>
+
+                    <div class="columns is-multiline">
+                        <!-- ?===========================================================  -->
+                        <div class="column is-1">
+                            <div class="field">
+                                <label class="label">Max A</label>
+                                <div class="control">
+                                    <input id="config-1" class="input is-info" type="number" min="-100" value="1" />
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="column is-1">
+                            <div class="field">
+                                <label class="label">Max B</label>
+                                <div class="control">
+                                    <input id="config-2" class="input is-info" type="number" min="-100" value="1" />
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="column is-1">
+                            <div class="field">
+                                <label class="label">---</label>
+                                <div class="control">
+                                    <input id="config-2" class="input is-info" type="number" min="-100" value="1" />
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="column is-1">
+                            <div class="field">
+                                <label class="label">---</label>
+                                <div class="control">
+                                    <input id="config-2" class="input is-info" type="number" min="-100" value="1" />
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="column is-1">
+                            <div class="field">
+                                <label class="label">---</label>
+                                <div class="control">
+                                    <input id="config-3" class="input is-info" type="number" min="-100" value="1" />
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="column is-1">
+                            <div class="field">
+                                <label class="label">---</label>
+                                <div class="control">
+                                    <input id="config-4" class="input is-info" type="number" min="-100" value="1" />
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="column is-1">
+                            <div class="field">
+                                <label class="label">---</label>
+                                <div class="control">
+                                    <input id="config-5" class="input is-info" type="number" min="-100" value="1" />
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="column is-1">
+                            <div class="field">
+                                <label class="label">---</label>
+                                <div class="control">
+                                    <input id="config-6" class="input is-info" type="number" min="-100" value="1" />
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="column is-1">
+                            <div class="field">
+                                <label class="label">---</label>
+                                <div class="control">
+                                    <input id="config-7" class="input is-info" type="number" min="-100" value="1" />
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="column is-1">
+                            <div class="field">
+                                <label class="label">---</label>
+                                <div class="control">
+                                    <input id="config-8" class="input is-info" type="number" min="-100" value="1" />
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- ?============================================================ -->
+                    </div>
+
+                    <div class="field is-grouped mt-4">
+                        <div class="control">
+                            <button class="button is-success" onclick="on_save_configuration()">Apply</button>
+                        </div>
+                        <div class="control">
+                            <button class="button is-warning" onclick="on_reset_config()">Reset</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script type="text/javascript" src="config.js"></script>
+</body>
+
+</html>
