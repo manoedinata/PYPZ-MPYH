@@ -11,8 +11,8 @@ flowchart LR
     IMU[IMU serial / Wit IMU] --> Pose[pose_estimator]
     Encoder[Wheel encoder] --> Pose
 
-    Pose --> Odom[/odom]
-    Vision --> Perception[Lane / obstacle / sign data]
+    Pose --> Odom["/odom"]
+    Vision --> Perception["Lane / obstacle / sign data"]
     April --> Perception
 
     Odom --> Master[master FSM]
