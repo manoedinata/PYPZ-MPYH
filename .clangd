@@ -1,0 +1,28 @@
+# .clangd in workspace root
+CompileFlags:
+  Add:
+    - "-std=c++17"
+    # ROS 2 Humble System Headers
+    - -isystem
+    - "-I/opt/ros/humble/include"
+    - "-I/opt/ros/humble/include/rclcpp"
+    - "-I/opt/ros/humble/include/rcutils"
+    - "-I/opt/ros/humble/include/rmw"
+    - "-I${workspaceFolder}/install/include"
+    - "-I${workspaceFolder}/src"
+    - "-I${workspaceFolder}/install/include"
+
+    # Workspace specific
+    - "-I${workspaceFolder}/src/master/include"
+    - "-I${workspaceFolder}/src/vision/include"
+    - "-I${workspaceFolder}/src/world_model/include"
+  # Remove compiler-specific flags that may confuse clangd
+  Remove:
+    - -mno-avx
+    - -fno-canonical-system-headers
+
+Diagnostics:
+  UnusedIncludes: None
+  ClangTidy:
+    Remove:
+      - modernize-use-trailing-return-type

@@ -1,0 +1,12 @@
+{
+    "clangd.enable": true,
+    "clangd.arguments": [
+        "--background-index",
+        "--clang-tidy",
+        "--completion-style=detailed",
+        "--header-insertion=iwyu",
+        "--header-insertion-decorators",
+        "--compile-commands-dir=${workspaceFolder}/build",
+        "--fallback-style=Google"
+    ]
+}
