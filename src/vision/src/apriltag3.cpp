@@ -16,7 +16,8 @@
 #include "tf2_ros/buffer.h"
 #include "tf2_ros/transform_listener.h"
 
-extern "C" {
+extern "C"
+{
 #include "apriltag/apriltag.h"
 #include "apriltag/apriltag_pose.h"
 #include "apriltag/common/getopt.h"
@@ -33,14 +34,16 @@ extern "C" {
 using namespace std;
 using namespace cv;
 
-typedef struct {
-    int id; // Tag ID
+typedef struct
+{
+    int id;          // Tag ID
     float pose_R[3]; // Rotation matrix for pose estimation
     float pose_t[3]; // Translation vector for pose estimation
 } apriltag_iris_t;
 
-class AprilTag3 : public rclcpp::Node {
-private:
+class AprilTag3 : public rclcpp::Node
+{
+  private:
     // -------------------------------------------------
     // Transform
     // -------------------------------------------------
@@ -80,8 +83,8 @@ private:
     cv::Mat image_bgr;
     cv::Mat image_gray;
 
-    apriltag_family_t* tf = NULL;
-    apriltag_detector_t* td = NULL;
+    apriltag_family_t *tf = NULL;
+    apriltag_detector_t *td = NULL;
 
     sensor_msgs::msg::CameraInfo::SharedPtr camera_info;
     // -------------------------------------------------
@@ -94,13 +97,12 @@ private:
     bool param_debug = false;
     bool param_refine_edges = true;
 
-public:
+  public:
     AprilTag3()
-        : Node("AprilTag3")
-        , tf_buffer_(this->get_clock())
-        , tf_listener_(tf_buffer_)
+        : Node("AprilTag3"), tf_buffer_(this->get_clock()), tf_listener_(tf_buffer_)
     {
-        if (!logger.init()) {
+        if (!logger.init())
+        {
             RCLCPP_ERROR(this->get_logger(), "Failed to initialize logger");
             rclcpp::shutdown();
         }
@@ -168,12 +170,16 @@ public:
         pub_marker_array = this->create_publisher<visualization_msgs::msg::MarkerArray>(
             "/apriltag/markers", 1);
 
-        while (!tf_is_initialized) {
+        while (!tf_is_initialized)
+        {
             rclcpp::sleep_for(std::chrono::seconds(1));
-            try {
+            try
+            {
                 tf_camera_base = tf_buffer_.lookupTransform("base_link", "camera_color_optical_frame", tf2::TimePointZero);
                 tf_is_initialized = true;
-            } catch (const tf2::TransformException& ex) {
+            }
+            catch (const tf2::TransformException &ex)
+            {
                 logger.warn("TF not ready: %s", ex.what());
                 rclcpp::sleep_for(std::chrono::milliseconds(100));
             }
@@ -189,20 +195,23 @@ public:
     void callback_sub_image_bgr_rs(const sensor_msgs::msg::Image::SharedPtr msg)
     {
         // logger.info("Received image with size: %dx%d", msg->width, msg->height);
-        if (!tf_is_initialized) {
+        if (!tf_is_initialized)
+        {
             logger.warn("TF not initialized, skipping point cloud processing");
             return;
         }
 
-        try {
+        try
+        {
             auto cv_ptr = cv_bridge::toCvCopy(msg, sensor_msgs::image_encodings::BGR8);
             image_bgr = cv_ptr->image.clone();
             cv::cvtColor(image_bgr, image_gray, cv::COLOR_BGR2GRAY);
 
-            image_u8_t im = { image_gray.cols, image_gray.rows, image_gray.cols, image_gray.data };
-            zarray_t* detections = apriltag_detector_detect(td, &im);
+            image_u8_t im = {image_gray.cols, image_gray.rows, image_gray.cols, image_gray.data};
+            zarray_t *detections = apriltag_detector_detect(td, &im);
 
-            if (errno == EAGAIN) {
+            if (errno == EAGAIN)
+            {
                 printf("Unable to create the %d threads requested.\n", td->nthreads);
                 return;
             }
@@ -213,23 +222,24 @@ public:
             apriltag_iris_t tag_filtered;
             tag_filtered.id = -1; // Initialize with an invalid ID
             // Modify the detection loop to include pose estimation
-            for (int i = 0; i < zarray_size(detections); i++) {
-                apriltag_detection_t* det;
+            for (int i = 0; i < zarray_size(detections); i++)
+            {
+                apriltag_detection_t *det;
                 zarray_get(detections, i, &det);
 
                 // Draw detection outlines (existing code)
                 line(image_bgr, Point(det->p[0][0], det->p[0][1]),
-                    Point(det->p[1][0], det->p[1][1]),
-                    Scalar(0, 0xff, 0), 2);
+                     Point(det->p[1][0], det->p[1][1]),
+                     Scalar(0, 0xff, 0), 2);
                 line(image_bgr, Point(det->p[0][0], det->p[0][1]),
-                    Point(det->p[3][0], det->p[3][1]),
-                    Scalar(0, 0, 0xff), 2);
+                     Point(det->p[3][0], det->p[3][1]),
+                     Scalar(0, 0, 0xff), 2);
                 line(image_bgr, Point(det->p[1][0], det->p[1][1]),
-                    Point(det->p[2][0], det->p[2][1]),
-                    Scalar(0xff, 0, 0), 2);
+                     Point(det->p[2][0], det->p[2][1]),
+                     Scalar(0xff, 0, 0), 2);
                 line(image_bgr, Point(det->p[2][0], det->p[2][1]),
-                    Point(det->p[3][0], det->p[3][1]),
-                    Scalar(0xff, 0, 0), 2);
+                     Point(det->p[3][0], det->p[3][1]),
+                     Scalar(0xff, 0, 0), 2);
 
                 // Pose estimation
                 apriltag_detection_info_t info;
@@ -256,7 +266,8 @@ public:
                 cv::putText(image_bgr, pose_info, Point(10, 30 + i * 20), FONT_HERSHEY_SIMPLEX, 0.5, Scalar(255, 255, 0), 1);
 
                 float distance = sqrt(pose.t->data[0] * pose.t->data[0] + pose.t->data[1] * pose.t->data[1] + pose.t->data[2] * pose.t->data[2]);
-                if (distance < minimal_distance) {
+                if (distance < minimal_distance)
+                {
                     tag_filtered.id = det->id;
                     tag_filtered.pose_R[0] = pose.R->data[0];
                     tag_filtered.pose_R[1] = pose.R->data[1];
@@ -287,10 +298,12 @@ public:
             visualization_msgs::msg::MarkerArray marker_array_msg;
 
             // Always publish marker array - either with tag or empty to clear previous markers
-            if (tag_filtered.id != -1) {
+            if (tag_filtered.id != -1)
+            {
                 // Get transform from camera to base_link and apply it
                 geometry_msgs::msg::TransformStamped transform_stamped;
-                try {
+                try
+                {
                     transform_stamped = tf_buffer_.lookupTransform("base_link", "camera_color_optical_frame", tf2::TimePointZero);
 
                     // Create a geometry_msgs::msg::Point in camera frame
@@ -326,11 +339,14 @@ public:
                     marker.color.a = 1.0;
                     marker.lifetime = rclcpp::Duration::from_seconds(0.5);
                     marker_array_msg.markers.push_back(marker);
-
-                } catch (const tf2::TransformException& ex) {
+                }
+                catch (const tf2::TransformException &ex)
+                {
                     RCLCPP_ERROR(this->get_logger(), "TF lookup failed: %s", ex.what());
                 }
-            } else {
+            }
+            else
+            {
                 // try {
                 //     visualization_msgs::msg::Marker marker;
                 //     marker.header.frame_id = "base_link"; // Changed to base_link
@@ -363,13 +379,14 @@ public:
 
             // Always publish marker array regardless of detection status
             pub_marker_array->publish(marker_array_msg);
-
-        } catch (const cv_bridge::Exception& e) {
+        }
+        catch (const cv_bridge::Exception &e)
+        {
             RCLCPP_ERROR(this->get_logger(), "cv_bridge exception: %s", e.what());
         }
     }
 };
-int main(int argc, char** argv)
+int main(int argc, char **argv)
 {
     rclcpp::init(argc, argv);
 

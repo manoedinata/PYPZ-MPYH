@@ -1,11 +1,10 @@
 #include "vision/vision_capture2.hpp"
 
 VisionCapture2::VisionCapture2()
-    : Node("vision_capture2")
-    , tf_buffer_(this->get_clock())
-    , tf_listener_(tf_buffer_)
+    : Node("vision_capture2"), tf_buffer_(this->get_clock()), tf_listener_(tf_buffer_)
 {
-    if (!logger.init()) {
+    if (!logger.init())
+    {
         RCLCPP_ERROR(this->get_logger(), "Failed to initialize logger");
         rclcpp::shutdown();
     }
@@ -79,24 +78,26 @@ VisionCapture2::VisionCapture2()
     //             lookahead_far_meter_, lookahead_far_pixel_,
     //             lookahead_near_meter_, lookahead_near_pixel_);
 
-    if (!use_realsense_ros) {
+    if (!use_realsense_ros)
+    {
         // --------------------------------------------------
         // Initialize RealSense context and check for devices
         // --------------------------------------------------
         rs2::context ctx;
         rs2::device_list devices = ctx.query_devices();
-        if (devices.size() == 0) {
+        if (devices.size() == 0)
+        {
             std::cerr << "No RealSense devices found." << std::endl;
             return;
         }
 
-        for (const auto& dev : devices) {
+        for (const auto &dev : devices)
             print_device_info(dev);
-        }
         // --------------------------------------------------
         // Configure and start RealSense pipeline
         // --------------------------------------------------
-        try {
+        try
+        {
             cfg_.enable_stream(RS2_STREAM_COLOR, 640, 360, RS2_FORMAT_BGR8, 60);
             cfg_.enable_stream(RS2_STREAM_DEPTH, 640, 360, RS2_FORMAT_Z16, 60);
 
@@ -104,7 +105,8 @@ VisionCapture2::VisionCapture2()
 
             auto device = pipe_.get_active_profile().get_device();
             auto color_sensor = device.first<rs2::color_sensor>();
-            if (color_sensor) {
+            if (color_sensor)
+            {
                 color_sensor.set_option(RS2_OPTION_ENABLE_AUTO_EXPOSURE, 1.0f);
                 color_sensor.set_option(RS2_OPTION_ENABLE_AUTO_WHITE_BALANCE, 1.0f);
                 logger.info("Auto Exposure: %s", color_sensor.get_option(RS2_OPTION_ENABLE_AUTO_EXPOSURE) ? "Enabled" : "Disabled");
@@ -114,7 +116,9 @@ VisionCapture2::VisionCapture2()
             pipeline_started_ = true;
 
             logger.info("RealSense pipeline started successfully");
-        } catch (const rs2::error& e) {
+        }
+        catch (const rs2::error &e)
+        {
             logger.error("Failed to start RealSense pipeline: %s", e.what());
             return;
         }
@@ -149,7 +153,8 @@ VisionCapture2::VisionCapture2()
     // Create subscribers
     // --------------------------------------------------
 
-    if (use_realsense_ros) {
+    if (use_realsense_ros)
+    {
         //!==================================================================
         //!                     REALSENSE ROS SUBSCRIBERS
         //!==================================================================
@@ -232,7 +237,8 @@ VisionCapture2::VisionCapture2()
     // --------------------------------------------------
     // Create timer
     // --------------------------------------------------
-    if (!use_realsense_ros) {
+    if (!use_realsense_ros)
+    {
         logger.info("Using RealSense SDK for image capture");
         timer_routine_ = this->create_wall_timer(
             std::chrono::milliseconds(10),
@@ -243,7 +249,9 @@ VisionCapture2::VisionCapture2()
             std::chrono::milliseconds(1),
             std::bind(&VisionCapture2::callback_tim_pointcloud_routine, this),
             tim_routine_group_);
-    } else {
+    }
+    else
+    {
         logger.info("Using RealSense ROS for image capture");
     }
     timer_img_routine_ = this->create_wall_timer(
@@ -253,9 +261,11 @@ VisionCapture2::VisionCapture2()
     // --------------------------------------------------
     // Wait for TF to be initialized
     // --------------------------------------------------
-    while (!tf_is_initialized) {
+    while (!tf_is_initialized)
+    {
         rclcpp::sleep_for(std::chrono::seconds(1));
-        try {
+        try
+        {
             tf_camera_base_ = tf_buffer_.lookupTransform("base_link", "camera_color_optical_frame", tf2::TimePointZero);
             tf_base_camera_ = tf_buffer_.lookupTransform("camera_color_optical_frame", "base_link", tf2::TimePointZero);
 
@@ -264,8 +274,8 @@ VisionCapture2::VisionCapture2()
             logger.info("  frame_id: %s", tf_camera_base_.header.frame_id.c_str());
             logger.info("  child_frame_id: %s", tf_camera_base_.child_frame_id.c_str());
             logger.info("  stamp: %u.%u",
-                tf_camera_base_.header.stamp.sec,
-                tf_camera_base_.header.stamp.nanosec);
+                        tf_camera_base_.header.stamp.sec,
+                        tf_camera_base_.header.stamp.nanosec);
 
             logger.info("Translation:");
             logger.info("  x = %.6f", tf_camera_base_.transform.translation.x);
@@ -283,8 +293,8 @@ VisionCapture2::VisionCapture2()
             logger.info("  frame_id: %s", tf_base_camera_.header.frame_id.c_str());
             logger.info("  child_frame_id: %s", tf_base_camera_.child_frame_id.c_str());
             logger.info("  stamp: %u.%u",
-                tf_base_camera_.header.stamp.sec,
-                tf_base_camera_.header.stamp.nanosec);
+                        tf_base_camera_.header.stamp.sec,
+                        tf_base_camera_.header.stamp.nanosec);
 
             logger.info("Translation:");
             logger.info("  x = %.6f", tf_base_camera_.transform.translation.x);
@@ -327,7 +337,8 @@ VisionCapture2::VisionCapture2()
             //   z = -0.307821
             //   w = -0.307818
 
-            if (use_realsense_ros) {
+            if (use_realsense_ros)
+            {
                 tf_camera_base_.header.frame_id = "base_link";
                 tf_camera_base_.transform.translation.x = 0.114000;
                 tf_camera_base_.transform.translation.y = 0.000000;
@@ -348,7 +359,9 @@ VisionCapture2::VisionCapture2()
             }
 
             tf_is_initialized = true;
-        } catch (const tf2::TransformException& ex) {
+        }
+        catch (const tf2::TransformException &ex)
+        {
             logger.warn("TF not ready: %s", ex.what());
             rclcpp::sleep_for(std::chrono::milliseconds(100));
         }
@@ -375,12 +388,16 @@ void VisionCapture2::callback_tim_img_routine()
     // ==================================================================
     //                    AVOID EXECUTION IF NOT NEEDED
     // ==================================================================
-    if (use_realsense_ros) {
-        if (image_received_ && depth_received_) {
+    if (use_realsense_ros)
+    {
+        if (image_received_ && depth_received_)
+        {
             image_received_ = 0;
             depth_received_ = 0;
             img_sync_ = 1;
-        } else {
+        }
+        else
+        {
             return;
         }
     }
@@ -403,11 +420,13 @@ void VisionCapture2::callback_tim_img_routine()
 
     // Get the latest images from the RealSense camera
 
-    if (!use_realsense_ros) {
+    if (!use_realsense_ros)
+    {
         {
             std::lock_guard<std::mutex> lock(image_mutex_);
 
-            if (color_image_.empty() || depth_image_.empty()) {
+            if (color_image_.empty() || depth_image_.empty())
+            {
                 logger.warn("Images not yet available, skipping overlay generation");
                 return;
             }
@@ -419,10 +438,11 @@ void VisionCapture2::callback_tim_img_routine()
 
             img_sync_ = 0;
         }
-    } else {
-        if (color_image_.empty() || depth_image_.empty()) {
+    }
+    else
+    {
+        if (color_image_.empty() || depth_image_.empty())
             return;
-        }
 
         {
             std::lock_guard<std::mutex> lock(image_mutex_);
@@ -442,19 +462,21 @@ void VisionCapture2::callback_tim_img_routine()
     // Realsense SDK intrinsics
     // Camera intrinsics: fx=320.78, fy=320.36, ppx=326.78, ppy=180.46, coeffs=[-0.0538, 0.0629, -0.0005, 0.0014, -0.0199]
 
-    if (use_realsense_ros) {
+    if (use_realsense_ros)
+    {
         intrinsics.fx = 320.78f;
         intrinsics.fy = 320.36f;
         intrinsics.ppx = 326.78f;
         intrinsics.ppy = 180.46f;
         intrinsics.coeffs[0] = -0.0538f; // k1
-        intrinsics.coeffs[1] = 0.0629f; // k2
+        intrinsics.coeffs[1] = 0.0629f;  // k2
         intrinsics.coeffs[2] = -0.0005f; // p1
-        intrinsics.coeffs[3] = 0.0014f; // p2
+        intrinsics.coeffs[3] = 0.0014f;  // p2
         intrinsics.coeffs[4] = -0.0199f; // k3
     }
 
-    if (use_realsense_ros) {
+    if (use_realsense_ros)
+    {
         static uint8_t has_set_frequency = 0;
         static uint8_t has_set_exposure = 0;
         static uint8_t has_set_white_balance = 0;
@@ -608,7 +630,7 @@ void VisionCapture2::callback_tim_img_routine()
             std::swap(controlbox_data[8], controlbox_data[11]);
 
         cv::inRange(yuv_frame, cv::Scalar(controlbox_data[6], controlbox_data[7], controlbox_data[8]),
-            cv::Scalar(controlbox_data[9], controlbox_data[10], controlbox_data[11]), thres_yuv);
+                    cv::Scalar(controlbox_data[9], controlbox_data[10], controlbox_data[11]), thres_yuv);
     }
     cv::erode(thres_yuv, thres_yuv, cv::Mat(), cv::Point(-1, -1), 5);
 
@@ -617,18 +639,19 @@ void VisionCapture2::callback_tim_img_routine()
     cv::findContours(thres_yuv, yuv_contours, cv::RETR_EXTERNAL, cv::CHAIN_APPROX_SIMPLE);
 
     std::sort(yuv_contours.begin(), yuv_contours.end(),
-        [](const std::vector<cv::Point>& a, const std::vector<cv::Point>& b) {
-            return cv::contourArea(a) > cv::contourArea(b);
-        });
+              [](const std::vector<cv::Point> &a, const std::vector<cv::Point> &b)
+              {
+                  return cv::contourArea(a) > cv::contourArea(b);
+              });
     // remove contours that are too small, only get 2 longest countours
-    if (yuv_contours.size() > 1) {
+    if (yuv_contours.size() > 1)
         yuv_contours.resize(1);
-    }
 
     // get centroid of the largest contour
     cv::Point centroid_yuv(0, 0);
     cv::Mat cleaned_yuv = cv::Mat::zeros(thres_yuv.size(), CV_8UC1);
-    for (const auto& contour : yuv_contours) {
+    for (const auto &contour : yuv_contours)
+    {
         if (cv::contourArea(contour) < 800) // Filter out small contours
             continue;
 
@@ -636,27 +659,29 @@ void VisionCapture2::callback_tim_img_routine()
         cv::Mat contour_mask = cv::Mat::zeros(thres_yuv.size(), CV_8UC1);
 
         // Draw only this contour
-        cv::drawContours(contour_mask, std::vector<std::vector<cv::Point>> { contour }, -1, cv::Scalar(255), cv::FILLED);
+        cv::drawContours(contour_mask, std::vector<std::vector<cv::Point>>{contour}, -1, cv::Scalar(255), cv::FILLED);
 
         // Count white pixels (i.e., area in pixels)
         int white_pixel_count = cv::countNonZero(contour_mask);
 
-        if (white_pixel_count < 800) {
+        if (white_pixel_count < 800)
             continue;
-        }
         // logger.info("Contour area in pixels: %d", white_pixel_count);
 
         // Calculate the centroid of the contour
         cv::Moments m = cv::moments(contour);
-        if (m.m00 != 0) {
+        if (m.m00 != 0)
+        {
             centroid_yuv.x = static_cast<int>(m.m10 / m.m00);
             centroid_yuv.y = static_cast<int>(m.m01 / m.m00);
-        } else {
+        }
+        else
+        {
             centroid_yuv.x = 0;
             centroid_yuv.y = 0;
         }
 
-        cv::drawContours(cleaned_yuv, std::vector<std::vector<cv::Point>> { contour }, -1, cv::Scalar(255), cv::FILLED);
+        cv::drawContours(cleaned_yuv, std::vector<std::vector<cv::Point>>{contour}, -1, cv::Scalar(255), cv::FILLED);
     }
 
     std::vector<std::vector<cv::Point>> cleaned_yuv_contour;
@@ -708,14 +733,14 @@ void VisionCapture2::callback_tim_img_routine()
     cv::findContours(thres_hsv, hsv_contours, cv::RETR_EXTERNAL, cv::CHAIN_APPROX_SIMPLE);
     // sort contours by height
     std::sort(hsv_contours.begin(), hsv_contours.end(),
-        [](const std::vector<cv::Point>& a, const std::vector<cv::Point>& b) {
-            return cv::boundingRect(a).height > cv::boundingRect(b).height;
-        });
+              [](const std::vector<cv::Point> &a, const std::vector<cv::Point> &b)
+              {
+                  return cv::boundingRect(a).height > cv::boundingRect(b).height;
+              });
 
     //! remove contours that are too small, only get 3 longest countours
-    if (hsv_contours.size() > 3) {
+    if (hsv_contours.size() > 3)
         hsv_contours.resize(3);
-    }
 
     // draw contours on the cleaned binary image
     cleaned_binary = cv::Mat::zeros(thres_hsv.size(), CV_8UC1);
@@ -723,7 +748,8 @@ void VisionCapture2::callback_tim_img_routine()
     std::vector<cv::Point> nearest_pixels = std::vector<cv::Point>();
     std::vector<float> distances = std::vector<float>();
 
-    for (const auto& contour : hsv_contours) {
+    for (const auto &contour : hsv_contours)
+    {
         if (cv::contourArea(contour) < 1200) // Filter out small contours
             continue;
 
@@ -731,22 +757,24 @@ void VisionCapture2::callback_tim_img_routine()
         cv::Mat contour_mask = cv::Mat::zeros(thres_hsv.size(), CV_8UC1);
 
         // Draw only this contour
-        cv::drawContours(contour_mask, std::vector<std::vector<cv::Point>> { contour }, -1, cv::Scalar(255), cv::FILLED);
+        cv::drawContours(contour_mask, std::vector<std::vector<cv::Point>>{contour}, -1, cv::Scalar(255), cv::FILLED);
 
         // Count white pixels (i.e., area in pixels)
         int white_pixel_count = cv::countNonZero(contour_mask);
 
-        if (white_pixel_count < 1200) {
+        if (white_pixel_count < 1200)
             continue;
-        }
 
         // get the nearest pixel point to the centroid of the yuv contour
-        if (!cleaned_yuv_contour.empty()) {
+        if (!cleaned_yuv_contour.empty())
+        {
             cv::Point nearest_point(0, 0);
             double min_distance = std::numeric_limits<double>::max();
-            for (const auto& point : contour) {
+            for (const auto &point : contour)
+            {
                 double distance = cv::norm(point - centroid_yuv);
-                if (distance < min_distance) {
+                if (distance < min_distance)
+                {
                     min_distance = distance;
                     nearest_point = point;
                 }
@@ -759,7 +787,7 @@ void VisionCapture2::callback_tim_img_routine()
         }
         // logger.info("Contour area in pixels: %d", white_pixel_count);
 
-        cv::drawContours(cleaned_binary, std::vector<std::vector<cv::Point>> { contour }, -1, cv::Scalar(255), cv::FILLED);
+        cv::drawContours(cleaned_binary, std::vector<std::vector<cv::Point>>{contour}, -1, cv::Scalar(255), cv::FILLED);
     }
 
     // combine the cleaned binary image with the thresholded YUV image
@@ -772,18 +800,18 @@ void VisionCapture2::callback_tim_img_routine()
     // Transform points in 3d to matrix image using project realsense function
     // Define ground plane corners in world coordinates (base_link frame)
     // These points define a rectangular area on the ground that will be transformed to BEV
-    float ground_width = 1.0f; // 1 meter wide (-0.5 to +0.5)
+    float ground_width = 1.0f;  // 1 meter wide (-0.5 to +0.5)
     float ground_length = 2.0f; // 2 meters deep (0.5 to 2.5)
     float ground_height = 0.0f; // Ground level
 
     // 3D points defining the ground plane rectangle in base_link coordinates
-    float point_3d_left_bottom[3] = { 0.5f, -ground_width / 2, ground_height }; // Close left
-    float point_3d_right_bottom[3] = { 0.5f, ground_width / 2, ground_height }; // Close right
-    float point_3d_left_top[3] = { 0.5f + ground_length, -ground_width / 2, ground_height }; // Far left
-    float point_3d_right_top[3] = { 0.5f + ground_length, ground_width / 2, ground_height }; // Far right
+    float point_3d_left_bottom[3] = {0.5f, -ground_width / 2, ground_height};              // Close left
+    float point_3d_right_bottom[3] = {0.5f, ground_width / 2, ground_height};              // Close right
+    float point_3d_left_top[3] = {0.5f + ground_length, -ground_width / 2, ground_height}; // Far left
+    float point_3d_right_top[3] = {0.5f + ground_length, ground_width / 2, ground_height}; // Far right
 
-    float point_3d_look_ahead_far[3] = { 1.0f, 0.0f, ground_height }; // Look ahead point
-    float point_3d_look_ahead_near[3] = { 0.5f, 0.0f, ground_height }; // Look ahead point
+    float point_3d_look_ahead_far[3] = {1.0f, 0.0f, ground_height};  // Look ahead point
+    float point_3d_look_ahead_near[3] = {0.5f, 0.0f, ground_height}; // Look ahead point
 
     float camera_point_left_bottom[3], camera_point_right_bottom[3];
     float camera_point_left_top[3], camera_point_right_top[3];
@@ -845,7 +873,8 @@ void VisionCapture2::callback_tim_img_routine()
     // Realsense projection image SDK
     // Projected points: left_bottom=(609.64, 229.95), right_bottom=(46.08, 229.70), left_top=(401.47, 8.60), right_top=(252.50, 8.82)
 
-    if (use_realsense_ros) {
+    if (use_realsense_ros)
+    {
         pixel_left_bottom[0] = 609.64f;
         pixel_left_bottom[1] = 229.95f;
         pixel_right_bottom[0] = 46.08f;
@@ -867,8 +896,8 @@ void VisionCapture2::callback_tim_img_routine()
     cv::putText(realsense_projection, camera_size, cv::Point(10, 30), cv::FONT_HERSHEY_SIMPLEX, 0.7, cv::Scalar(200), 2);
 
     // Draw filled polygon instead of lines
-    std::vector<cv::Point> polygon_points = { left_bottom, right_bottom, right_top, left_top };
-    cv::fillPoly(realsense_projection, std::vector<std::vector<cv::Point>> { polygon_points }, cv::Scalar(255));
+    std::vector<cv::Point> polygon_points = {left_bottom, right_bottom, right_top, left_top};
+    cv::fillPoly(realsense_projection, std::vector<std::vector<cv::Point>>{polygon_points}, cv::Scalar(255));
 
     // Define source points (corners of the projected ground rectangle)
     std::vector<cv::Point2f> src_points;
@@ -883,8 +912,8 @@ void VisionCapture2::callback_tim_img_routine()
     std::vector<cv::Point2f> dst_points;
     dst_points.push_back(cv::Point2f(300, bev_height_ - 50)); // left_bottom -> bottom_right
     dst_points.push_back(cv::Point2f(100, bev_height_ - 50)); // right_bottom -> bottom_left
-    dst_points.push_back(cv::Point2f(300, 50)); // left_top -> top_right
-    dst_points.push_back(cv::Point2f(100, 50)); // right_top -> top_left
+    dst_points.push_back(cv::Point2f(300, 50));               // left_top -> top_right
+    dst_points.push_back(cv::Point2f(100, 50));               // right_top -> top_left
 
     // Calculate perspective transformation matrix
     cv::Mat perspective_matrix = cv::getPerspectiveTransform(src_points, dst_points);
@@ -931,7 +960,7 @@ void VisionCapture2::callback_tim_img_routine()
             std::swap(controlbox_data[2], controlbox_data[5]);
 
         cv::inRange(bev_hsv_frame, cv::Scalar(controlbox_data[0], controlbox_data[1], controlbox_data[2]),
-            cv::Scalar(controlbox_data[3], controlbox_data[4], controlbox_data[5]), bev_binary);
+                    cv::Scalar(controlbox_data[3], controlbox_data[4], controlbox_data[5]), bev_binary);
     }
 
     //? ==================================================================
@@ -945,7 +974,8 @@ void VisionCapture2::callback_tim_img_routine()
     //     return;
     // }
 
-    if (button_1) {
+    if (button_1)
+    {
         reset_state();
         logger.warn("=============\nBEV binary image is too dark, resetting state variables\n==========");
         return;
@@ -973,17 +1003,16 @@ void VisionCapture2::callback_tim_img_routine()
     cv::morphologyEx(bev_binary, bev_binary, cv::MORPH_CLOSE, line_kernel);
 
     std::vector<cv::Point> horizontal_points = sliding_windows(bev_binary, bev_binary.cols, 5,
-        3, bev_color_image);
+                                                               3, bev_color_image);
     std::vector<cv::Point> vertical_points = sliding_windows(bev_binary, 5, bev_binary.rows,
-        3, bev_color_image);
+                                                             3, bev_color_image);
 
     std::vector<cv::Point> all_points;
     all_points.insert(all_points.end(), horizontal_points.begin(), horizontal_points.end());
     all_points.insert(all_points.end(), vertical_points.begin(), vertical_points.end());
 
-    for (const auto& point : all_points) {
+    for (const auto &point : all_points)
         cv::circle(bev_binary, point, 4, cv::Scalar(255), -1);
-    }
 
     cv::Mat display_thres_bev = bev_binary.clone();
 
@@ -1015,9 +1044,8 @@ void VisionCapture2::callback_tim_img_routine()
     cv::line(bev_color_image, cv::Point(valid_center_right_, 0), cv::Point(valid_center_right_, bev_color_image.rows), cv::Scalar(255), 1);
     cv::line(bev_color_image, cv::Point(0, cropping_distance_), cv::Point(bev_color_image.cols, cropping_distance_), cv::Scalar(255), 1);
 
-    for (float i = 0.2; i < 1.2; i += 0.1) {
+    for (float i = 0.2; i < 1.2; i += 0.1)
         cv::circle(bev_color_image, robot_position_, i * meter_to_pixel_, cv::Scalar(255, 0, 0), 1);
-    }
 
     cv::Mat dashed_line_filtered = cv::Mat::zeros(bev_binary.size(), CV_8UC1);
     cv::Mat dashed_line_filtered_left = cv::Mat::zeros(bev_binary.size(), CV_8UC1);
@@ -1038,8 +1066,10 @@ void VisionCapture2::callback_tim_img_routine()
     //? =======================================================
     cv::Mat rectangle = cv::Mat::zeros(bev_color_image.size(), CV_8UC1);
     // Process each contour to find rotated rectangles
-    for (const auto& contour : contours) {
-        if (cv::contourArea(contour) > 20) { // Filter small contours
+    for (const auto &contour : contours)
+    {
+        if (cv::contourArea(contour) > 20)
+        { // Filter small contours
             // Get minimum area rotated rectangle
             cv::RotatedRect rotated_rect = cv::minAreaRect(contour);
 
@@ -1050,16 +1080,18 @@ void VisionCapture2::callback_tim_img_routine()
             double confidence = (contour_area / rect_area) * 100.0;
 
             // Only process rectangles with 80% confidence or higher
-            if (confidence >= 5.0 && (rotated_rect.size.width < 100 && rotated_rect.size.height < 100)) {
+            if (confidence >= 5.0 && (rotated_rect.size.width < 100 && rotated_rect.size.height < 100))
+            {
                 // Get the 4 corner points of the rotated rectangle
                 cv::Point2f vertices[4];
                 rotated_rect.points(vertices);
 
                 // Draw the rotated rectangle
-                for (int i = 0; i < 4; i++) {
+                for (int i = 0; i < 4; i++)
+                {
                     // cv::line(bev_color_image, vertices[i], vertices[(i + 1) % 4], cv::Scalar(0, 255, 0), 2);
                 }
-                cv::fillPoly(rectangle, std::vector<cv::Point> { cv::Point(vertices[0]), cv::Point(vertices[1]), cv::Point(vertices[2]), cv::Point(vertices[3]) }, cv::Scalar(255));
+                cv::fillPoly(rectangle, std::vector<cv::Point>{cv::Point(vertices[0]), cv::Point(vertices[1]), cv::Point(vertices[2]), cv::Point(vertices[3])}, cv::Scalar(255));
 
                 // Draw center point and angle
                 // cv::circle(bev_color_image, rotated_rect.center, 5, cv::Scalar(255, 0, 0), -1);
@@ -1092,9 +1124,9 @@ void VisionCapture2::callback_tim_img_routine()
     float target_y_min = robot_position_.y - sin((-max_steering_deg_ + 90) * M_PI / 180) * lookahead_far_pixel_;
 
     cv::line(bev_color_image, cv::Point(robot_position_.x, robot_position_.y),
-        cv::Point(target_x_max, target_y_max), cv::Scalar(0, 255, 255), 2);
+             cv::Point(target_x_max, target_y_max), cv::Scalar(0, 255, 255), 2);
     cv::line(bev_color_image, cv::Point(robot_position_.x, robot_position_.y),
-        cv::Point(target_x_min, target_y_min), cv::Scalar(0, 255, 255), 2);
+             cv::Point(target_x_min, target_y_min), cv::Scalar(0, 255, 255), 2);
 
     //* ==================================================
     //*            OPTIMALIZATION FLOOD FILL
@@ -1109,8 +1141,8 @@ void VisionCapture2::callback_tim_img_routine()
     points[0][3] = cv::Point(valid_center_right_, valid_down_);
     points[0][4] = cv::Point(bev_width_, valid_up_);
     points[0][5] = cv::Point(bev_width_, cropping_distance_);
-    const cv::Point* ppt[1] = { points[0] };
-    int npt[] = { 6 };
+    const cv::Point *ppt[1] = {points[0]};
+    int npt[] = {6};
     cv::fillPoly(valid_region_mask, ppt, npt, 1, cv::Scalar(255));
 
     cv::line(line_valid_region, cv::Point(0, cropping_distance_), cv::Point(0, valid_up_), cv::Scalar(255), 5);
@@ -1153,7 +1185,7 @@ void VisionCapture2::callback_tim_img_routine()
     //? ==================================================
     //?                    SEGMENT ROAD
     //? ==================================================
-    float segment_speed_[4] = { segment_speed_1, segment_speed_2, segment_speed_3, segment_speed_4 };
+    float segment_speed_[4] = {segment_speed_1, segment_speed_2, segment_speed_3, segment_speed_4};
     road_segment(bev_cleaned_binary, bev_color_image, 4, road_segment_threshold_area, segment_speed_, 1);
 
     // for (int i = 0; i < 4; i++) {
@@ -1169,12 +1201,12 @@ void VisionCapture2::callback_tim_img_routine()
     cv::Mat fix_bev_cleaned_binary = cv::Mat::zeros(bev_cleaned_binary.size(), CV_8UC1);
 
     std::sort(filtered_contours.begin(), filtered_contours.end(),
-        [](const std::vector<cv::Point>& a, const std::vector<cv::Point>& b) {
-            return cv::contourArea(a) > cv::contourArea(b);
-        });
-    if (!filtered_contours.empty()) {
+              [](const std::vector<cv::Point> &a, const std::vector<cv::Point> &b)
+              {
+                  return cv::contourArea(a) > cv::contourArea(b);
+              });
+    if (!filtered_contours.empty())
         cv::drawContours(fix_bev_cleaned_binary, filtered_contours, 0, cv::Scalar(255), cv::FILLED);
-    }
 
     bev_cleaned_binary = fix_bev_cleaned_binary.clone();
     //* ==================================================
@@ -1194,14 +1226,21 @@ void VisionCapture2::callback_tim_img_routine()
 
     return_edge = edge_reference_detection(bev_cleaned_binary, bev_color_image, left_flood_fill_points, right_flood_fill_points);
 
-    if (return_edge == 1) {
+    if (return_edge == 1)
+    {
         left_valid = 1;
-    } else if (return_edge == 2) {
+    }
+    else if (return_edge == 2)
+    {
         right_valid = 1;
-    } else if (return_edge == 3) {
+    }
+    else if (return_edge == 3)
+    {
         left_valid = 1;
         right_valid = 1;
-    } else {
+    }
+    else
+    {
         left_valid = 0;
         right_valid = 0;
     }
@@ -1241,13 +1280,16 @@ void VisionCapture2::callback_tim_img_routine()
     float turn_percentage = 0;
     int turn_direction = 0; // 0 = straight, -1 = left, 1 = right
 
-    if (!filtered_contours.empty()) {
+    if (!filtered_contours.empty())
+    {
         // Use the top-most contour for turn detection
         size_t top_most_idx = 0;
         int min_y = cv::boundingRect(filtered_contours[0]).y;
-        for (size_t i = 1; i < filtered_contours.size(); ++i) {
+        for (size_t i = 1; i < filtered_contours.size(); ++i)
+        {
             int y = cv::boundingRect(filtered_contours[i]).y;
-            if (y < min_y) {
+            if (y < min_y)
+            {
                 min_y = y;
                 top_most_idx = i;
             }
@@ -1261,13 +1303,12 @@ void VisionCapture2::callback_tim_img_routine()
         int contour_center_x = bounding_box.x + bounding_box.width / 2;
         int image_center_x = bev_width_ / 2;
 
-        if (contour_center_x < image_center_x - 10) {
+        if (contour_center_x < image_center_x - 10)
             turn_direction = -1; // Turn left
-        } else if (contour_center_x > image_center_x + 10) {
+        else if (contour_center_x > image_center_x + 10)
             turn_direction = 1; // Turn right
-        } else {
+        else
             turn_direction = 0; // Straight
-        }
     }
 
     if (turn_percentage > 0.5f || area_bounding_box < 22000) //! NGAWUR
@@ -1276,15 +1317,19 @@ void VisionCapture2::callback_tim_img_routine()
         pos_ada_belokan = enc_meter;
 
         // Log turn direction
-        if (turn_direction == -1) {
+        if (turn_direction == -1)
+        {
             // logger.info("Turn detected: LEFT");
-        } else if (turn_direction == 1) {
+        }
+        else if (turn_direction == 1)
+        {
             // logger.info("Turn detected: RIGHT");
         }
     }
 
     //! JADIKAN PARAMETER
-    if (enc_meter - pos_ada_belokan > 0.3f && ada_belokan_ == 1) {
+    if (enc_meter - pos_ada_belokan > 0.3f && ada_belokan_ == 1)
+    {
         ada_belokan_ = 0;
         pos_ada_belokan = 0;
     }
@@ -1320,12 +1365,14 @@ void VisionCapture2::callback_tim_img_routine()
     // logger.info("actual hindar: %.2f m || speed real: %.3f m/s || angle: %.2f deg || cos: %.2f",
     // jarak_actual_hindar, enc_speed, abs_angle * 180.0f / M_PI, cos_angle);
 
-    if (!filtered_depth_obs_contours.empty()) {
+    if (!filtered_depth_obs_contours.empty())
+    {
         // Sort contours by bounding box area and keep only the largest one
         std::sort(filtered_depth_obs_contours.begin(), filtered_depth_obs_contours.end(),
-            [](const std::vector<cv::Point>& a, const std::vector<cv::Point>& b) {
-                return cv::boundingRect(a).area() > cv::boundingRect(b).area();
-            });
+                  [](const std::vector<cv::Point> &a, const std::vector<cv::Point> &b)
+                  {
+                      return cv::boundingRect(a).area() > cv::boundingRect(b).area();
+                  });
 
         // logger.info("area : %.2f", cv::boundingRect(filtered_depth_obs_contours[0]).area());
         cv::Point centroid_depth_obs = getCentroid(filtered_depth_obs_contours[0]);
@@ -1338,7 +1385,7 @@ void VisionCapture2::callback_tim_img_routine()
         //? FIND CLOSEST POINTS FROM OBS CENTROID ON LEFT AND RIGHT LANE
         //? =====================================================================
 
-        float min_dist_left = std::numeric_limits<float>::max(); // jarak robot ke kiri jalan
+        float min_dist_left = std::numeric_limits<float>::max();  // jarak robot ke kiri jalan
         float min_dist_right = std::numeric_limits<float>::max(); // jarak robot ke kanan jalan
 
         // if (((dist_to_robot / meter_to_pixel_) + offset_speed_to_dist(enc_speed)) < 1.0) {
@@ -1349,17 +1396,21 @@ void VisionCapture2::callback_tim_img_routine()
         cv::Point closest_point_obs_lane_kanan(0, 0);
         std::vector<cv::Point> valid_points;
 
-        for (const auto& pt : left_flood_fill_points) {
+        for (const auto &pt : left_flood_fill_points)
+        {
             float dist = cv::norm(pt - centroid_depth_obs);
-            if (dist < min_dist_left) {
+            if (dist < min_dist_left)
+            {
                 min_dist_left = dist;
                 closest_point_obs_lane_kiri = pt;
             }
         }
 
-        for (const auto& pt : right_flood_fill_points) {
+        for (const auto &pt : right_flood_fill_points)
+        {
             float dist = cv::norm(pt - centroid_depth_obs);
-            if (dist < min_dist_right) {
+            if (dist < min_dist_right)
+            {
                 min_dist_right = dist;
                 closest_point_obs_lane_kanan = pt;
             }
@@ -1369,31 +1420,33 @@ void VisionCapture2::callback_tim_img_routine()
         //* FIND DIST ROBOT TO OBS
         //* =============================
 
-        if (min_dist_left < min_dist_right) {
+        if (min_dist_left < min_dist_right)
             valid_points = left_flood_fill_points;
-        } else {
+        else
             valid_points = right_flood_fill_points;
-        }
 
         // remove point that to close to obs
         valid_points.erase(std::remove_if(valid_points.begin(), valid_points.end(),
-                               [&](const cv::Point& pt) {
-                                   return cv::norm(pt - centroid_depth_obs) < 100;
-                               }),
-            valid_points.end());
+                                          [&](const cv::Point &pt)
+                                          {
+                                              return cv::norm(pt - centroid_depth_obs) < 100;
+                                          }),
+                           valid_points.end());
 
         // remove point that to close to obs
         valid_points.erase(std::remove_if(valid_points.begin(), valid_points.end(),
-                               [&](const cv::Point& pt) {
-                                   return cv::norm(pt - robot_position_) < 100;
-                               }),
-            valid_points.end());
+                                          [&](const cv::Point &pt)
+                                          {
+                                              return cv::norm(pt - robot_position_) < 100;
+                                          }),
+                           valid_points.end());
 
         cv::Point prev_valid_point = robot_position_;
 
         float total_dist_to_robot = cv::norm(centroid_depth_obs - robot_position_);
 
-        if (!valid_points.empty()) {
+        if (!valid_points.empty())
+        {
 
             total_dist_to_robot = 10;
 
@@ -1404,12 +1457,14 @@ void VisionCapture2::callback_tim_img_routine()
 
             cv::Point prev_second_point = robot_position_;
 
-            for (size_t i = 0; i < valid_points.size() - 1; i++) {
+            for (size_t i = 0; i < valid_points.size() - 1; i++)
+            {
                 cv::circle(bev_color_image, valid_points[i], 2, cv::Scalar(255, 0, 0), -1);
 
                 float angle_deg = computeAngle(valid_points[i], valid_points[i + 1]);
 
-                if (i != 0) {
+                if (i != 0)
+                {
                     total_angle += fabs(prev_deg - angle_deg);
                     // logger.info("angle between: %.2f", (prev_deg - angle_deg));
                 }
@@ -1419,15 +1474,13 @@ void VisionCapture2::callback_tim_img_routine()
                 second_point.x = static_cast<int>(valid_points[i].x - (offset_length)*std::cos(angle_deg * M_PI / 180.0f));
                 second_point.y = static_cast<int>(valid_points[i].y - (offset_length)*std::sin(angle_deg * M_PI / 180.0f));
 
-                if (i == 0) {
+                if (i == 0)
                     threshold_jarak = 150;
-                } else {
+                else
                     threshold_jarak = 60;
-                }
 
-                if (cv::norm(second_point - prev_second_point) > threshold_jarak) {
+                if (cv::norm(second_point - prev_second_point) > threshold_jarak)
                     continue; // Skip points that are too far to the previous point
-                }
 
                 total_dist_to_robot += cv::norm(second_point - prev_second_point);
 
@@ -1441,20 +1494,21 @@ void VisionCapture2::callback_tim_img_routine()
             cv::line(bev_color_image, prev_second_point, centroid_depth_obs, cv::Scalar(100, 100, 0), 6);
         }
 
-        if (cv::norm(centroid_depth_obs - robot_position_) < 100) {
+        if (cv::norm(centroid_depth_obs - robot_position_) < 100)
             dist_to_robot = cv::norm(centroid_depth_obs - robot_position_); // jarak centroid ke robot
-        } else {
+        else
             dist_to_robot = total_dist_to_robot; // jarak centroid ke robot
-        }
 
         dist_to_robot_meter = std::max((dist_to_robot / meter_to_pixel_) - offset_speed_to_dist(speed_motor), 0.0); // jarak centroid ke robot dalam meter
 
-        if (min_dist_right < 50 || min_dist_left < 50) {
+        if (min_dist_right < 50 || min_dist_left < 50)
+        {
 
             ada_obs_ = 1;
             // used_reference_ = EDGE_REFERENCE;
 
-            if (centroid_depth_obs.x > 0 && centroid_depth_obs.y > 0) {
+            if (centroid_depth_obs.x > 0 && centroid_depth_obs.y > 0)
+            {
                 cv::circle(bev_color_image, centroid_depth_obs, 8, cv::Scalar(0, 0, 0), -1);
                 cv::circle(bev_color_image, centroid_depth_obs, 7, cv::Scalar(0, 100, 255), -1);
             }
@@ -1464,21 +1518,24 @@ void VisionCapture2::callback_tim_img_routine()
             uint8_t cek_obs = min_dist_left > min_dist_right;
 
             //? SWAP VARIABLE
-            if (origin_used_lane_ == LEFT_LANE) {
+            if (origin_used_lane_ == LEFT_LANE)
+            {
                 cek_obs = min_dist_left < min_dist_right;
                 cv::Point temp = closest_point_obs_lane_kiri;
                 closest_point_obs_lane_kiri = closest_point_obs_lane_kanan;
                 closest_point_obs_lane_kanan = temp;
             }
 
-            if (cek_obs) {
+            if (cek_obs)
+            {
                 ada_obs_kanan_ = cek_obs;
                 // used_lane_ = CENTER_LANE;
 
                 cv::line(bev_color_image, centroid_depth_obs, closest_point_obs_lane_kanan, cv::Scalar(0, 0, 255), 7);
                 cv::circle(bev_color_image, centroid_depth_obs, 15, cv::Scalar(0, 0, 255), -1);
 
-                if ((dist_to_robot_meter < jarak_hindar)) {
+                if ((dist_to_robot_meter < jarak_hindar))
+                {
 
                     // if (prev_ada_obs_ == 0) {
                     //     pos_enc_hindar = jarak_actual_hindar;
@@ -1487,11 +1544,14 @@ void VisionCapture2::callback_tim_img_routine()
                     used_lane_ = !origin_used_lane_;
                     out_duration = ada_belokan_ ? out_duration_belokan_ : out_duration_normal_;
                 }
-            } else {
+            }
+            else
+            {
                 ada_obs_kanan_ = cek_obs;
                 cv::circle(bev_color_image, centroid_depth_obs, 15, cv::Scalar(255, 0, 0), -1);
 
-                if (prev_ada_obs_ == 0) {
+                if (prev_ada_obs_ == 0)
+                {
                     pos_enc_hindar = jarak_actual_hindar;
                     counter_switch_lane = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
                 }
@@ -1513,11 +1573,14 @@ void VisionCapture2::callback_tim_img_routine()
 
     float enc_meter_keluar = std::max(max_enc_meter_obs_ + offset_speed_to_dist(speed_motor), min_dist_jarak_keluar_); // Minimum distance to switch lane
 
-    if (ada_obs_) {
+    if (ada_obs_)
+    {
         logger.info("=============== Masuk ke kondisi keluar ===============");
 
-        if (jarak_actual_hindar - pos_enc_hindar > enc_meter_keluar && perpindahan_lane_) {
-            if (ada_obs_kanan_ && keluar_enc_) {
+        if (jarak_actual_hindar - pos_enc_hindar > enc_meter_keluar && perpindahan_lane_)
+        {
+            if (ada_obs_kanan_ && keluar_enc_)
+            {
                 // used_lane_ = CENTER_LANE;
                 // keluar_enc_ = 1;
                 awal_center_lane = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
@@ -1527,7 +1590,8 @@ void VisionCapture2::callback_tim_img_routine()
                 keluar_enc_ = 0;
             }
 
-            if (!ada_obs_kanan_) {
+            if (!ada_obs_kanan_)
+            {
                 ada_obs_ = 0;
                 used_reference_ = DASHED_REFERENCE;
                 used_lane_ = origin_used_lane_;
@@ -1541,9 +1605,12 @@ void VisionCapture2::callback_tim_img_routine()
             //         keluar_enc_ = 0;
             //     }
             // }
-        } else {
+        }
+        else
+        {
             used_reference_ = EDGE_REFERENCE;
-            if (ada_obs_kanan_) {
+            if (ada_obs_kanan_)
+            {
                 // used_reference_ = EDGE_REFERENCE;
                 keluar_enc_ = 1;
             }
@@ -1560,9 +1627,9 @@ void VisionCapture2::callback_tim_img_routine()
     std::string ada_obs_str = ada_obs_slow_down_ ? "ADA OBSTACLE" : "TIDAK ADA OBSTACLE";
 
     cv::putText(bev_color_image, offset_speed_str, cv::Point(10, 130), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(0, 255, 255), 2.1); // HIJAU
-    cv::putText(bev_color_image, jarak_hindar_str, cv::Point(10, 150), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(0, 255, 0), 2.1); // HIJAU
-    cv::putText(bev_color_image, dist_to_robot_str, cv::Point(10, 170), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(255, 0, 0), 2.1); // MERAH
-    cv::putText(bev_color_image, ada_obs_str, cv::Point(10, 190), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(255, 0, 255), 2.1); // KUNING
+    cv::putText(bev_color_image, jarak_hindar_str, cv::Point(10, 150), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(0, 255, 0), 2.1);   // HIJAU
+    cv::putText(bev_color_image, dist_to_robot_str, cv::Point(10, 170), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(255, 0, 0), 2.1);  // MERAH
+    cv::putText(bev_color_image, ada_obs_str, cv::Point(10, 190), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(255, 0, 255), 2.1);      // KUNING
 
     //? ===============================================================
     //?                DETEKSI GARIS PUTUS-PUTUS
@@ -1590,29 +1657,34 @@ void VisionCapture2::callback_tim_img_routine()
     // Calculate average area with safety check
     float average_area = 0.0f;
 
-    if (ada_obs_) {
+    if (ada_obs_)
+    {
         line_length_left_ = dash_kiri_anomali;
         line_length_right_ = dash_kanan_anomali;
         line_length_edge_left_ = edge_kiri_anomali;
         line_length_edge_right_ = edge_kanan_anomali;
-    } else {
+    }
+    else
+    {
         line_length_left_ = dash_kiri_default;
         line_length_right_ = dash_kanan_default;
         line_length_edge_left_ = edge_kiri_default;
         line_length_edge_right_ = edge_kanan_default;
     }
 
-    if (!dashed_contours.empty()) { // ← PENTING: Check kosong!
-        for (const auto& contour : dashed_contours) {
+    if (!dashed_contours.empty())
+    { // ← PENTING: Check kosong!
+        for (const auto &contour : dashed_contours)
             average_area += cv::contourArea(contour);
-        }
         average_area /= static_cast<float>(dashed_contours.size());
 
         // filter contours based on area
-        for (size_t i = 0; i < dashed_contours.size(); i++) {
+        for (size_t i = 0; i < dashed_contours.size(); i++)
+        {
             float area = cv::contourArea(dashed_contours[i]);
             // logger.info("Contour area: %.2f || %d", area, i);
-            if (area < 50 || area > dashed_filter_area_) {
+            if (area < 50 || area > dashed_filter_area_)
+            {
                 dashed_contours.erase(dashed_contours.begin() + i);
                 i--; // Adjust index after removal
             }
@@ -1631,15 +1703,18 @@ void VisionCapture2::callback_tim_img_routine()
 
         // sort contours by y position
         std::sort(dashed_contours.begin(), dashed_contours.end(),
-            [](const std::vector<cv::Point>& a, const std::vector<cv::Point>& b) {
-                return cv::boundingRect(a).y > cv::boundingRect(b).y;
-            });
+                  [](const std::vector<cv::Point> &a, const std::vector<cv::Point> &b)
+                  {
+                      return cv::boundingRect(a).y > cv::boundingRect(b).y;
+                  });
 
         // check the distance between contours
-        for (size_t i = 0; i < dashed_contours.size(); i++) {
+        for (size_t i = 0; i < dashed_contours.size(); i++)
+        {
 
             // Check if the contour is too close to the previous one
-            if (i > 0) {
+            if (i > 0)
+            {
                 cv::Rect prev_bounding_rect = cv::boundingRect(dashed_contours[i - 1]);
                 float dist = sqrt(pow(cv::boundingRect(dashed_contours[i]).x - prev_bounding_rect.x, 2) + pow(cv::boundingRect(dashed_contours[i]).y - prev_bounding_rect.y, 2));
                 // logger.info("Distance between contours %d and %d: %.2f", i - 1, i, dist);
@@ -1652,35 +1727,39 @@ void VisionCapture2::callback_tim_img_routine()
         }
 
         // put text id
-        for (size_t i = 0; i < dashed_contours.size(); i++) {
+        for (size_t i = 0; i < dashed_contours.size(); i++)
+        {
             cv::Rect bounding_rect = cv::boundingRect(dashed_contours[i]);
             cv::putText(bev_color_image, std::to_string(i), cv::Point(bounding_rect.x, bounding_rect.y - 10),
-                cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(0, 255, 0), 1);
+                        cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(0, 255, 0), 1);
         }
 
-        for (const auto& contour : dashed_contours) {
-            cv::drawContours(dashed_line_cleaned, std::vector<std::vector<cv::Point>> { contour }, -1, cv::Scalar(255), cv::FILLED);
-        }
+        for (const auto &contour : dashed_contours)
+            cv::drawContours(dashed_line_cleaned, std::vector<std::vector<cv::Point>>{contour}, -1, cv::Scalar(255), cv::FILLED);
 
         std::vector<std::pair<cv::Point, float>> saved_dashed_centroid;
         // draw contours on the cleaned binary image
 
         // draw line from centroid contour to next centroid contour
-        if (dashed_contours.size() >= 2) { // ← PENTING: Check minimal 2 contours!
+        if (dashed_contours.size() >= 2)
+        {                                    // ← PENTING: Check minimal 2 contours!
             cv::Point prev_centroid(-1, -1); // Track previous centroid for angle calculation
 
-            for (size_t i = 0; i < dashed_contours.size() - 1; i++) {
+            for (size_t i = 0; i < dashed_contours.size() - 1; i++)
+            {
 
                 cv::Point centroid_a = getCentroid(dashed_contours[i]);
                 cv::Point centroid_b = getCentroid(dashed_contours[i + 1]);
 
                 // Check if points are valid
-                if (centroid_a.x > 0 && centroid_a.y > 0 && centroid_b.x > 0 && centroid_b.y > 0) {
+                if (centroid_a.x > 0 && centroid_a.y > 0 && centroid_b.x > 0 && centroid_b.y > 0)
+                {
 
                     // Check angle with previous line segment if exists
                     bool skip_line = false;
 
-                    if (prev_centroid != cv::Point(-1, -1)) {
+                    if (prev_centroid != cv::Point(-1, -1))
+                    {
                         // Hitung sudut antara dua segmen: prev → A dan A → B
                         cv::Point2f vec1 = centroid_a - prev_centroid;
                         cv::Point2f vec2 = centroid_b - centroid_a;
@@ -1688,31 +1767,30 @@ void VisionCapture2::callback_tim_img_routine()
                         float len1 = cv::norm(vec1);
                         float len2 = cv::norm(vec2);
 
-                        if (len1 > 0 && len2 > 0) {
+                        if (len1 > 0 && len2 > 0)
+                        {
                             float cos_theta = vec1.dot(vec2) / (len1 * len2);
                             cos_theta = std::max(-1.0f, std::min(cos_theta, 1.0f)); // Hindari NaN
                             float angle_between = std::acos(cos_theta) * 180.0f / CV_PI;
 
-                            if (angle_between > 180.0f) {
+                            if (angle_between > 180.0f)
                                 angle_between -= 360.0f; // Normalisasi sudut
-                            } else if (angle_between < -180.0f) {
+                            else if (angle_between < -180.0f)
                                 angle_between += 360.0f; // Normalisasi sudut
-                            }
 
-                            if (fabs(angle_between) > 45.0f) {
+                            if (fabs(angle_between) > 45.0f)
                                 skip_line = true;
-                            }
                         }
                     }
 
                     // Jika tidak di-skip, simpan centroid + arah
-                    if (!skip_line) {
+                    if (!skip_line)
+                    {
                         float angle_deg = computeAngle(centroid_a, centroid_b);
 
                         saved_dashed_centroid.emplace_back(centroid_a, angle_deg);
-                        if (i == dashed_contours.size() - 2) {
+                        if (i == dashed_contours.size() - 2)
                             saved_dashed_centroid.emplace_back(centroid_b, angle_deg);
-                        }
 
                         prev_centroid = centroid_a; // Update previous centroid
                     }
@@ -1721,15 +1799,15 @@ void VisionCapture2::callback_tim_img_routine()
         }
 
         // push to first element
-        if (saved_dashed_centroid.size() > 0) {
+        if (saved_dashed_centroid.size() > 0)
+        {
             float angle_robot_to_first = computeAngle(robot_position_, saved_dashed_centroid[0].first);
             saved_dashed_centroid.insert(saved_dashed_centroid.begin(), std::make_pair(robot_position_, angle_robot_to_first));
         }
 
         prev_saved_dashed_centroid_.clear();
-        for (const auto& dashed_centroid : saved_dashed_centroid) {
+        for (const auto &dashed_centroid : saved_dashed_centroid)
             prev_saved_dashed_centroid_.push_back(dashed_centroid.first);
-        }
 
         //! ============================================================
         //? ============================================================
@@ -1738,11 +1816,10 @@ void VisionCapture2::callback_tim_img_routine()
 
         float line_length = 35.0f; // Length of the dashed line segments
 
-        if (saved_dashed_centroid.size() > 1) {
+        if (saved_dashed_centroid.size() > 1)
             last_angle = computeAngle(saved_dashed_centroid[saved_dashed_centroid.size() - 1].first, saved_dashed_centroid[saved_dashed_centroid.size() - 2].first);
-        } else if (saved_dashed_centroid.size() > 0) {
+        else if (saved_dashed_centroid.size() > 0)
             last_angle = computeAngle(saved_dashed_centroid[saved_dashed_centroid.size() - 1].first, robot_position_);
-        }
         last_angle = fabs(last_angle);
 
         if (last_angle > max_steering_deg_)
@@ -1789,13 +1866,15 @@ void VisionCapture2::callback_tim_img_routine()
         cv::Point prev_first_point(robot_position_.x, robot_position_.y);
         cv::Point prev_second_point(robot_position_.x, robot_position_.y);
 
-        if (saved_dashed_centroid.size() < 3) {
+        if (saved_dashed_centroid.size() < 3)
+        {
             used_reference_ = EDGE_REFERENCE;
             // logger.info("No dashed line detected, using edge reference | size: %d <- %d ", saved_dashed_centroid.size(), dashed_contours.size());
         }
 
         total_angle = 0.0f;
-        for (int i = 0; i < saved_dashed_centroid.size(); i++) {
+        for (int i = 0; i < saved_dashed_centroid.size(); i++)
+        {
 
             cv::Point second_point;
             cv::Point first_point;
@@ -1807,11 +1886,14 @@ void VisionCapture2::callback_tim_img_routine()
             //? CALCULATE ANGLE BETWEEN TWO POINTS
             //? ===================================================
 
-            if (i == 0) {
+            if (i == 0)
+            {
                 // Use robot position for the first point
                 second_point = cv::Point(robot_position_.x, robot_position_.y);
                 first_point = cv::Point(robot_position_.x, robot_position_.y);
-            } else {
+            }
+            else
+            {
                 // second_point = saved_dashed_centroid[i].first;
                 // first_point = saved_dashed_centroid[i - 1].first;
                 second_point.x = static_cast<int>(saved_dashed_centroid[i].first.x + (line_length_left_)*std::cos(saved_dashed_centroid[i].second * M_PI / 180.0f));
@@ -1821,7 +1903,8 @@ void VisionCapture2::callback_tim_img_routine()
                 first_point.y = static_cast<int>(saved_dashed_centroid[i].first.y - line_length_right_ * std::sin(saved_dashed_centroid[i].second * M_PI / 180.0f));
             }
 
-            if (i == saved_dashed_centroid.size() - 1) {
+            if (i == saved_dashed_centroid.size() - 1)
+            {
                 cv::Point last_point(0, 0);
 
                 last_point.x = static_cast<int>(saved_dashed_centroid[i].first.x + (final_used_line_length + 30) * std::cos((saved_dashed_centroid[i].second + 90) * M_PI / 180.0f));
@@ -1842,11 +1925,13 @@ void VisionCapture2::callback_tim_img_routine()
 
             cv::line(bev_color_image, first_point, second_point, cv::Scalar(0, 255, 0), 2);
 
-            if (i < saved_dashed_centroid.size() - 1) {
+            if (i < saved_dashed_centroid.size() - 1)
+            {
                 cv::line(bev_color_image, saved_dashed_centroid[i].first, saved_dashed_centroid[i + 1].first, cv::Scalar(0, 0, 255), 2);
                 cv::line(dashed_line_filtered, saved_dashed_centroid[i].first, saved_dashed_centroid[i + 1].first, cv::Scalar(255), 5);
 
-                if (i != 0) {
+                if (i != 0)
+                {
                     total_angle += fabs(saved_dashed_centroid[i].second - saved_dashed_centroid[i + 1].second);
                     // logger.info("Angle between points: %.2f", (saved_dashed_centroid[i].second - saved_dashed_centroid[i + 1].second));
                 }
@@ -1867,7 +1952,9 @@ void VisionCapture2::callback_tim_img_routine()
             prev_first_point = first_point;
             prev_second_point = second_point;
         }
-    } else {
+    }
+    else
+    {
         // logger.info("No dashed line detected, using edge reference");
         used_reference_ = EDGE_REFERENCE;
     }
@@ -1887,15 +1974,17 @@ void VisionCapture2::callback_tim_img_routine()
 
     //? =====================================================================
     float norm_edge = 0;
-    if (ada_belokan_) {
-        if (ada_obs_ && ada_obs_kanan_) {
+    if (ada_belokan_)
+    {
+        if (ada_obs_ && ada_obs_kanan_)
             norm_edge = 1.5;
-        } else if (ada_obs_ && !ada_obs_kanan_) {
+        else if (ada_obs_ && !ada_obs_kanan_)
             norm_edge = 0;
-        } else {
+        else
             norm_edge = 0;
-        }
-    } else {
+    }
+    else
+    {
         norm_edge = 1;
     }
 
@@ -1903,18 +1992,21 @@ void VisionCapture2::callback_tim_img_routine()
     // float line_length_edge = (line_length_edge_max_ + line_length_edge_min_) - (norm_edge * (line_length_edge_max_ - line_length_edge_min_));
     // final_used_line_length = line_length_edge;
 
-    if (!left_flood_fill_points.empty()) {
+    if (!left_flood_fill_points.empty())
+    {
         float prev_deg = 0;
         float total_angle = 0;
         // float line_length_ref_baru_ = final_used_line_length;
         cv::Point prev_second_point = robot_position_;
 
-        for (size_t i = 0; i < left_flood_fill_points.size() - 1; i++) {
+        for (size_t i = 0; i < left_flood_fill_points.size() - 1; i++)
+        {
             cv::circle(bev_color_image, left_flood_fill_points[i], 2, cv::Scalar(255, 0, 0), -1);
 
             float angle_deg = computeAngle(left_flood_fill_points[i], left_flood_fill_points[i + 1]);
 
-            if (i != 0) {
+            if (i != 0)
+            {
                 total_angle += fabs(prev_deg - angle_deg);
                 // logger.info("angle between: %.2f", (prev_deg - angle_deg));
             }
@@ -1932,18 +2024,21 @@ void VisionCapture2::callback_tim_img_routine()
         }
     }
 
-    if (!right_flood_fill_points.empty()) {
+    if (!right_flood_fill_points.empty())
+    {
         float prev_deg = 0;
         float total_angle = 0;
         // float line_length_ref_baru_ = final_used_line_length;
         cv::Point prev_second_point = robot_position_;
 
-        for (size_t i = 0; i < right_flood_fill_points.size() - 1; i++) {
+        for (size_t i = 0; i < right_flood_fill_points.size() - 1; i++)
+        {
             cv::circle(bev_color_image, right_flood_fill_points[i], 2, cv::Scalar(0, 0, 255), -1);
 
             float angle_deg = computeAngle(right_flood_fill_points[i], right_flood_fill_points[i + 1]);
 
-            if (i != 0) {
+            if (i != 0)
+            {
                 total_angle += fabs(prev_deg - angle_deg);
                 // logger.info("angle between: %.2f", (prev_deg - angle_deg));
             }
@@ -1974,15 +2069,13 @@ void VisionCapture2::callback_tim_img_routine()
     float norm_angle = (max_steering_deg_ - total_angle) / max_steering_deg_;
     float delta = lookahead_far_pixel_ - lookahead_near_pixel_;
 
-    if (ada_obs_ || ada_belokan_) {
+    if (ada_obs_ || ada_belokan_)
         norm_angle = 0;
-    }
 
     used_lookahead = lookahead_near_pixel_ + (norm_angle * delta);
 
-    if (!perpindahan_lane_) {
+    if (!perpindahan_lane_)
         used_lookahead += 20;
-    }
     // target_velocity_ = speed_curve_ + (norm_angle * (speed_straight_ - speed_curve_));
 
     //? ============================================================
@@ -1993,24 +2086,24 @@ void VisionCapture2::callback_tim_img_routine()
 
     // Draw look-ahead distance far from robot position
     cv::circle(bev_color_image, cv::Point(robot_position_.x, robot_position_.y), static_cast<int>(lookahead_far_pixel_),
-        cv::Scalar(255, 0, 0), 2);
+               cv::Scalar(255, 0, 0), 2);
 
     // Draw look-ahead distance near from robot position
     cv::circle(bev_color_image, cv::Point(robot_position_.x, robot_position_.y), static_cast<int>(lookahead_near_pixel_),
-        cv::Scalar(0, 0, 255), 2);
+               cv::Scalar(0, 0, 255), 2);
 
     // Draw look-ahead distance used from robot position
     cv::circle(bev_color_image, cv::Point(robot_position_.x, robot_position_.y), static_cast<int>(used_lookahead),
-        cv::Scalar(255, 0, 255), 2);
+               cv::Scalar(255, 0, 255), 2);
 
     // Draw look-ahead for centroid calculation
     cv::Mat look_ahead_used = cv::Mat::zeros(bev_binary.size(), CV_8UC1);
     cv::circle(look_ahead_used, cv::Point(robot_position_.x, robot_position_.y), static_cast<int>(used_lookahead),
-        cv::Scalar(255), 5);
+               cv::Scalar(255), 5);
 
     cv::Mat look_ahead_obstacle = cv::Mat::zeros(bev_binary.size(), CV_8UC1);
     cv::circle(look_ahead_obstacle, cv::Point(robot_position_.x, robot_position_.y), static_cast<int>(120),
-        cv::Scalar(255), 2);
+               cv::Scalar(255), 2);
 
     // cv::circle(bev_color_image, cv::Point(robot_position_.x, robot_position_.y), static_cast<int>(120),
     //            cv::Scalar(255, 0, 255), 2);
@@ -2021,18 +2114,18 @@ void VisionCapture2::callback_tim_img_routine()
     static int cntr_ada_di_kanan = 0;
 
     //! unused
-    for (const auto& pt : left_flood_fill_points) {
+    for (const auto &pt : left_flood_fill_points)
+    {
         float dist = cv::norm(pt - robot_position_);
-        if (dist < min_dist_robot_left) {
+        if (dist < min_dist_robot_left)
             min_dist_robot_left = dist;
-        }
     }
 
-    for (const auto& pt : right_flood_fill_points) {
+    for (const auto &pt : right_flood_fill_points)
+    {
         float dist = cv::norm(pt - robot_position_);
-        if (dist < min_dist_robot_right) {
+        if (dist < min_dist_robot_right)
             min_dist_robot_right = dist;
-        }
     }
 
     // if ((min_dist_robot_left + min_dist_robot_right) > 70) {
@@ -2089,47 +2182,40 @@ void VisionCapture2::callback_tim_img_routine()
     // cv::circle(bev_color_image, closest_point_used_edge_kanan, 5, cv::Scalar(0, 255, 255), -1);
 
     // put text in bev_color_image if used reference is EDGE_REFERENCE or DASHED_REFERENCE
-    if (used_reference_ == EDGE_REFERENCE) {
+    if (used_reference_ == EDGE_REFERENCE)
         cv::putText(bev_color_image, "EDGE REFERENCE", cv::Point(10, 30), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(255, 0, 0), 2.1); // BIRU
-    } else if (used_reference_ == DASHED_REFERENCE) {
+    else if (used_reference_ == DASHED_REFERENCE)
         cv::putText(bev_color_image, "DASHED REFERENCE", cv::Point(10, 30), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(0, 0, 255), 2.1); // MERAH
-    }
 
-    if (used_lane_ == LEFT_LANE) {
+    if (used_lane_ == LEFT_LANE)
         cv::putText(bev_color_image, "USE LEFT LANE", cv::Point(10, 50), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(0, 0, 0), 2.1); // HITAM
-    } else if (used_lane_ == RIGHT_LANE) {
+    else if (used_lane_ == RIGHT_LANE)
         cv::putText(bev_color_image, "USE RIGHT LANE", cv::Point(10, 50), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(255, 255, 255), 2.1); // PUTIH
-    } else if (used_lane_ == CENTER_LANE) {
+    else if (used_lane_ == CENTER_LANE)
         cv::putText(bev_color_image, "USE CENTER LANE", cv::Point(10, 50), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(0, 255, 255), 2.1); // KUNING
-    }
 
-    if (ada_belokan_) {
+    if (ada_belokan_)
         cv::putText(bev_color_image, "ADA BELOKAN", cv::Point(10, 70), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(0, 255, 255), 2.1); // KUNING
-    } else {
+    else
         cv::putText(bev_color_image, "TIDAK ADA BELOKAN", cv::Point(10, 70), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(255, 0, 255), 2.1); // MAGENTA
-    }
 
-    if (ada_obs_) {
-        if (ada_obs_kanan_) {
+    if (ada_obs_)
+        if (ada_obs_kanan_)
             cv::putText(bev_color_image, "ADA DI JALUR", cv::Point(10, 90), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(0, 0, 255), 2.1); // MERAH
-        } else {
+        else
             cv::putText(bev_color_image, "ADA BUKAN DI JALUR", cv::Point(10, 90), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(0, 255, 0), 2.1); // HIJAU
-        }
-    } else {
+    else
         cv::putText(bev_color_image, "TIDAK ADA Obs", cv::Point(10, 90), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(255, 255, 0), 2.1); // CYAN
-    }
 
-    if (pos_robot) {
+    if (pos_robot)
         cv::putText(bev_color_image, "ROBOT DI KANAN", cv::Point(10, 110), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(255, 0, 0), 2.1); // MERAH
-    } else {
+    else
         cv::putText(bev_color_image, "ROBOT DI KIRI", cv::Point(10, 110), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(0, 255, 0), 2.1); // HIJAU
-    }
 
-    if (perpindahan_lane_ == 0) {
+    if (perpindahan_lane_ == 0)
         cv::putText(bev_color_image, "TRANSIENT LANE CHANGE", cv::Point(10, 210), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(0, 255, 255), 2.1); // KUNING
-    } else {
+    else
         cv::putText(bev_color_image, "LANE CHANGE DONE", cv::Point(10, 210), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(255, 0, 255), 2.1); // MAGENTA
-    }
 
     logger.info("reference: %d, lane: %d, Obs: %d | perpindahan: %d -> %d | %.2f", used_reference_, used_lane_, ada_obs_, perpindahan_lane_, prev_perpindahan_lane_, pos_enc_hindar);
     // used_reference_ = EDGE_REFERENCE;
@@ -2144,36 +2230,39 @@ void VisionCapture2::callback_tim_img_routine()
     // counter_transient_large = counter_transient_large / speed_motor;
     // counter_transient_small = counter_transient_small / speed_motor;
 
-    if (true) {
-        if (used_reference_ == DASHED_REFERENCE) {
+    if (true)
+    {
+        if (used_reference_ == DASHED_REFERENCE)
+        {
             //? ============================================================
             //?         USE DASHED REFERENCE
             //? ============================================================
             logger.info("used lane: %d, buffer used lane: %d, alpha used lane: %.2f", used_lane_, buffer_used_lane, alpha_used_lane);
             // TRANSIENT LANE CHANGE
-            if (used_lane_ != buffer_used_lane) {
+            if (used_lane_ != buffer_used_lane)
+            {
                 perpindahan_lane_ = 0;
-                if (used_lane_ == LEFT_LANE) {
+                if (used_lane_ == LEFT_LANE)
                     final_angle_used_for_steering_ = angle_used_kiri_ * alpha_used_lane + angle_used_buffer * (1.0f - alpha_used_lane);
-                } else if (used_lane_ == RIGHT_LANE) {
+                else if (used_lane_ == RIGHT_LANE)
                     final_angle_used_for_steering_ = angle_used_kanan_ * alpha_used_lane + angle_used_buffer * (1.0f - alpha_used_lane);
-                }
-                if (alpha_used_lane > 0.4f) {
+                if (alpha_used_lane > 0.4f)
                     alpha_used_lane += counter_transient_small;
-                } else {
+                else
                     alpha_used_lane += counter_transient_large;
-                }
-            } else {
+            }
+            else
+            {
                 perpindahan_lane_ = 1;
 
-                if (used_lane_ == LEFT_LANE) {
+                if (used_lane_ == LEFT_LANE)
                     final_angle_used_for_steering_ = angle_used_kiri_;
-                } else if (used_lane_ == RIGHT_LANE) {
+                else if (used_lane_ == RIGHT_LANE)
                     final_angle_used_for_steering_ = angle_used_kanan_;
-                }
             }
 
-            if (alpha_used_lane > 0.6f) {
+            if (alpha_used_lane > 0.6f)
+            {
                 perpindahan_lane_ = 1;
                 buffer_used_lane = used_lane_;
                 alpha_used_lane = 0.0f;
@@ -2200,56 +2289,67 @@ void VisionCapture2::callback_tim_img_routine()
             //     final_angle_used_for_steering_ = angle_used_;
             //     cv::line(bev_color_image, robot_position_, closest_point_used, cv::Scalar(255, 0, 0), 2);
             // }
-        } else if (used_reference_ == EDGE_REFERENCE) {
+        }
+        else if (used_reference_ == EDGE_REFERENCE)
+        {
             logger.info("valid left: %d, valid right: %d, used lane: %d", left_valid, right_valid, used_lane_);
-            if ((left_valid && right_valid) || (left_valid && used_lane_ == LEFT_LANE) || (right_valid && used_lane_ == RIGHT_LANE)) {
+            if ((left_valid && right_valid) || (left_valid && used_lane_ == LEFT_LANE) || (right_valid && used_lane_ == RIGHT_LANE))
+            {
                 //? ============================================================
                 //?         USE EDGE REFERENCE
                 //? ============================================================
                 logger.info("used lane: %d, buffer used lane: %d, alpha used lane: %.2f", used_lane_, buffer_used_lane, alpha_used_lane);
                 // TRANSIENT LANE CHANGE
-                if (used_lane_ != buffer_used_lane) {
+                if (used_lane_ != buffer_used_lane)
+                {
                     perpindahan_lane_ = 0;
-                    if (used_lane_ == LEFT_LANE) {
+                    if (used_lane_ == LEFT_LANE)
                         final_angle_used_for_steering_ = angle_used_edge_kiri_ * alpha_used_lane + angle_used_edge_kanan_ * (1.0f - alpha_used_lane);
-                    } else if (used_lane_ == RIGHT_LANE) {
+                    else if (used_lane_ == RIGHT_LANE)
                         final_angle_used_for_steering_ = angle_used_edge_kanan_ * alpha_used_lane + angle_used_buffer * (1.0f - alpha_used_lane);
-                    }
-                    if (alpha_used_lane > 0.4f) {
+                    if (alpha_used_lane > 0.4f)
                         alpha_used_lane += counter_transient_small;
-                    } else {
+                    else
                         alpha_used_lane += counter_transient_large;
-                    }
-                } else {
+                }
+                else
+                {
                     perpindahan_lane_ = 1;
 
-                    if (used_lane_ == LEFT_LANE) {
+                    if (used_lane_ == LEFT_LANE)
                         final_angle_used_for_steering_ = angle_used_edge_kiri_;
-                    } else if (used_lane_ == RIGHT_LANE) {
+                    else if (used_lane_ == RIGHT_LANE)
                         final_angle_used_for_steering_ = angle_used_edge_kanan_;
-                    }
                 }
 
-                if (alpha_used_lane > 0.6f) {
+                if (alpha_used_lane > 0.6f)
+                {
                     perpindahan_lane_ = 1;
                     buffer_used_lane = used_lane_;
                     alpha_used_lane = 0.0f;
                 }
 
                 angle_used_buffer = final_angle_used_for_steering_;
-            } else if (!left_valid && used_lane_ == LEFT_LANE) {
+            }
+            else if (!left_valid && used_lane_ == LEFT_LANE)
+            {
                 logger.info("left lane not valid, using max steering deg: %.2f", max_steering_deg_);
                 final_angle_used_for_steering_ = -60;
-            } else if (!right_valid && used_lane_ == RIGHT_LANE) {
+            }
+            else if (!right_valid && used_lane_ == RIGHT_LANE)
+            {
                 logger.info("right lane not valid, using max steering deg: %.2f", max_steering_deg_);
                 final_angle_used_for_steering_ = 60;
             }
         }
-    } else {
+    }
+    else
+    {
         final_angle_used_for_steering_ = computeAngle(longest_point, robot_position_);
     }
 
-    if (prev_perpindahan_lane_ == 0 && perpindahan_lane_ == 1 && ada_obs_) {
+    if (prev_perpindahan_lane_ == 0 && perpindahan_lane_ == 1 && ada_obs_)
+    {
         pos_enc_hindar = jarak_actual_hindar;
         counter_switch_lane = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
     }
@@ -2347,9 +2447,8 @@ void VisionCapture2::callback_tim_img_routine()
     // }
 
     target_velocity_ = 0;
-    for (int8_t i = 0; i < 4; i++) {
+    for (int8_t i = 0; i < 4; i++)
         target_velocity_ += segment_speed_[i];
-    }
 
     // if (used_reference_ == EDGE_REFERENCE) {
     //     target_velocity_ = 0.8;
@@ -2378,7 +2477,8 @@ void VisionCapture2::callback_tim_img_routine()
 
     static int8_t counter_publish = 0;
 
-    if (counter_publish++ > 5) {
+    if (counter_publish++ > 5)
+    {
         counter_publish = 0;
 
         // -- Convert depth image to 8-bit for visualization
@@ -2392,7 +2492,7 @@ void VisionCapture2::callback_tim_img_routine()
         // -- Show FPS
         double fps = 1.0 / elapsed_time;
         cv::putText(weigted_image, "FPS: " + std::to_string(fps), cv::Point(10, 30),
-            cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(255, 255, 255), 2);
+                    cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(255, 255, 255), 2);
 
         // cv::Mat showed_image;
         // cv::cvtColor(display_thres_bev, display_thres_bev, cv::COLOR_GRAY2BGR);
@@ -2513,9 +2613,8 @@ void VisionCapture2::callback_sub_initial(const std_msgs::msg::Int8::SharedPtr m
     // Publish the controlbox data
     std_msgs::msg::Int16MultiArray controlbox_msg;
     controlbox_msg.data.resize(controlbox_size);
-    for (size_t i = 0; i < controlbox_size; ++i) {
+    for (size_t i = 0; i < controlbox_size; ++i)
         controlbox_msg.data[i] = controlbox_data[i];
-    }
     pub_controlbox_->publish(controlbox_msg);
 
     std_msgs::msg::Float32MultiArray config_vision_msg;
@@ -2571,8 +2670,7 @@ void VisionCapture2::callback_sub_initial(const std_msgs::msg::Int8::SharedPtr m
         edge_kiri_default,
         edge_kanan_default,
         edge_kiri_anomali,
-        edge_kanan_anomali
-    };
+        edge_kanan_anomali};
 
     pub_config_vision_->publish(config_vision_msg);
 }
@@ -2636,7 +2734,8 @@ void VisionCapture2::callback_sub_vision_config(const std_msgs::msg::Float32Mult
     // lookahead_far_pixel_ = static_cast<int>(lookahead_far_meter_ * meter_to_pixel_);
     // lookahead_near_pixel_ = static_cast<int>(lookahead_near_meter_ * meter_to_pixel_);
 
-    for (size_t i = 0; i < msg->data.size(); ++i) {
+    for (size_t i = 0; i < msg->data.size(); ++i)
+    {
         // logger.info("Vision parameter %zu updated to: %.2f", i, msg->data[i]);
     }
 
@@ -2649,11 +2748,10 @@ void VisionCapture2::callback_sub_vision_config(const std_msgs::msg::Float32Mult
 // callbak controlbox
 void VisionCapture2::callback_sub_controlbox(const std_msgs::msg::Int16MultiArray::SharedPtr msg)
 {
-    for (size_t i = 0; i < msg->data.size(); ++i) {
+    for (size_t i = 0; i < msg->data.size(); ++i)
         controlbox_data[i] = msg->data[i];
-    }
 
-    lookahead_far_meter_ = controlbox_data[12] * 0.00196; // Convert from cm to m
+    lookahead_far_meter_ = controlbox_data[12] * 0.00196;  // Convert from cm to m
     lookahead_near_meter_ = controlbox_data[13] * 0.00196; // Convert from cm to m
 
     lookahead_far_pixel_ = static_cast<int>(lookahead_far_meter_ * meter_to_pixel_);
@@ -2663,26 +2761,28 @@ void VisionCapture2::callback_sub_controlbox(const std_msgs::msg::Int16MultiArra
     saveConfig();
 }
 
-int main(int argc, char** argv)
+int main(int argc, char **argv)
 {
     rclcpp::init(argc, argv);
     std::shared_ptr<VisionCapture2> node_VisionCapture2;
 
-    try {
+    try
+    {
         node_VisionCapture2 = std::make_shared<VisionCapture2>();
         rclcpp::executors::MultiThreadedExecutor executor(
             rclcpp::ExecutorOptions(),
             11);
         executor.add_node(node_VisionCapture2);
         executor.spin();
-    } catch (const std::exception& e) {
+    }
+    catch (const std::exception &e)
+    {
         RCLCPP_ERROR(rclcpp::get_logger("vision_capture2"), "Failed to create VisionCapture2 node: %s", e.what());
         rclcpp::shutdown();
     }
 
-    if (node_VisionCapture2) {
+    if (node_VisionCapture2)
         node_VisionCapture2.reset();
-    }
 
     rclcpp::shutdown();
     return 0;

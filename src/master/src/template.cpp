@@ -1,10 +1,10 @@
 #include "rclcpp/rclcpp.hpp"
-#include "ros2_utils/help_logger.hpp"
 #include "ros2_utils/global_definitions.hpp"
+#include "ros2_utils/help_logger.hpp"
 
 class Template : public rclcpp::Node
 {
-public:
+  public:
     rclcpp::TimerBase::SharedPtr tim_routine;
 
     HelpLogger logger;

@@ -5,11 +5,11 @@
 #include "tf2/LinearMath/Quaternion.h"
 
 //--Linux Headers
-#include <errno.h> // Error integer and strerror() function
-#include <fcntl.h> // Contains file controls like O_RDWR
+#include <errno.h>     // Error integer and strerror() function
+#include <fcntl.h>     // Contains file controls like O_RDWR
 #include <sys/ioctl.h> // ioctl()
-#include <termios.h> // Contains POSIX terminal control definitions
-#include <unistd.h> // write(), read(), close()
+#include <termios.h>   // Contains POSIX terminal control definitions
+#include <unistd.h>    // write(), read(), close()
 
 #include "boost/asio.hpp"
 
@@ -31,14 +31,15 @@
 
 #define GRAVITY 9.8
 
-class SerialIMU : public rclcpp::Node {
-private:
+class SerialIMU : public rclcpp::Node
+{
+  private:
     boost::asio::io_service io_service_;
     boost::asio::serial_port serial_port;
     char recv_buffer[256];
     int16_t recv_len;
 
-public:
+  public:
     rclcpp::TimerBase::SharedPtr tim_50hz;
     rclcpp::Publisher<sensor_msgs::msg::Imu>::SharedPtr pub_imu;
 
@@ -59,9 +60,7 @@ public:
     sensor_msgs::msg::Imu imu_msg;
 
     SerialIMU()
-        : Node("serial_imu")
-        , io_service_()
-        , serial_port(io_service_)
+        : Node("serial_imu"), io_service_(), serial_port(io_service_)
     {
         this->declare_parameter("port", "/dev/ttyUSB0");
         this->get_parameter("port", port);
@@ -75,21 +74,24 @@ public:
         this->declare_parameter("baudrate", 115200);
         this->get_parameter("baudrate", baudrate);
 
-        if (!logger.init()) {
+        if (!logger.init())
+        {
             RCLCPP_ERROR(this->get_logger(), "Failed to initialize logger");
             rclcpp::shutdown();
         }
 
-        if (!use_boost) {
-            if (init_serial() > 0) {
+        if (!use_boost)
+        {
+            if (init_serial() > 0)
+            {
                 RCLCPP_ERROR(this->get_logger(), "Failed to initialize serial");
                 rclcpp::shutdown();
             }
-        } else {
-            if (init_serial_boost() > 0) {
-                RCLCPP_ERROR(this->get_logger(), "Failed to initialize serial");
-                rclcpp::shutdown();
-            }
+        }
+        else if (init_serial_boost() > 0)
+        {
+            RCLCPP_ERROR(this->get_logger(), "Failed to initialize serial");
+            rclcpp::shutdown();
         }
 
         //----Publisher
@@ -103,13 +105,17 @@ public:
 
     void callback_tim_50hz()
     {
-        while (rclcpp::ok()) {
-            try {
+        while (rclcpp::ok())
+        {
+            try
+            {
                 if (!use_boost)
                     read_serial();
                 else
                     read_serial_asio();
-            } catch (const std::exception& e) {
+            }
+            catch (const std::exception &e)
+            {
                 logger.error("Error: %s", e.what());
             }
             // usleep(10000); // 100ms
@@ -132,7 +138,8 @@ public:
         boost::system::error_code ec;
         serial_port.open(port);
 
-        if (ec) {
+        if (ec)
+        {
             logger.error("Error %i from opening usb device: %s", ec.value(), ec.message().c_str());
             return 1;
         }
@@ -151,7 +158,8 @@ public:
         // Open the serial port. Change device path as needed (currently set to an standard FTDI USB-UART cable type device)
         serial_port_fd = open(port.c_str(), O_RDWR);
 
-        if (serial_port_fd < 0) {
+        if (serial_port_fd < 0)
+        {
             logger.error("Error %i from opening usb device: %s", errno, strerror(errno));
             return 1;
         }
@@ -160,24 +168,25 @@ public:
         struct termios tty;
 
         // Read in existing settings, and handle any error
-        if (tcgetattr(serial_port_fd, &tty) != 0) {
+        if (tcgetattr(serial_port_fd, &tty) != 0)
+        {
             logger.error("Error %i from tcgetattr: %s", errno, strerror(errno));
             return 1;
         }
 
-        tty.c_cflag &= ~PARENB; // Clear parity bit, disabling parity (most common)
-        tty.c_cflag &= ~CSTOPB; // Clear stop field, only one stop bit used in communication (most common)
-        tty.c_cflag &= ~CSIZE; // Clear all bits that set the data size
-        tty.c_cflag |= CS8; // 8 bits per byte (most common)
-        tty.c_cflag &= ~CRTSCTS; // Disable RTS/CTS hardware flow control (most common)
+        tty.c_cflag &= ~PARENB;        // Clear parity bit, disabling parity (most common)
+        tty.c_cflag &= ~CSTOPB;        // Clear stop field, only one stop bit used in communication (most common)
+        tty.c_cflag &= ~CSIZE;         // Clear all bits that set the data size
+        tty.c_cflag |= CS8;            // 8 bits per byte (most common)
+        tty.c_cflag &= ~CRTSCTS;       // Disable RTS/CTS hardware flow control (most common)
         tty.c_cflag |= CREAD | CLOCAL; // Turn on READ & ignore ctrl lines (CLOCAL = 1)
 
         tty.c_lflag &= ~ICANON;
-        tty.c_lflag &= ~ECHO; // Disable echo
-        tty.c_lflag &= ~ECHOE; // Disable erasure
-        tty.c_lflag &= ~ECHONL; // Disable new-line echo
-        tty.c_lflag &= ~ISIG; // Disable interpretation of INTR, QUIT and SUSP
-        tty.c_iflag &= ~(IXON | IXOFF | IXANY); // Turn off s/w flow ctrl
+        tty.c_lflag &= ~ECHO;                                                        // Disable echo
+        tty.c_lflag &= ~ECHOE;                                                       // Disable erasure
+        tty.c_lflag &= ~ECHONL;                                                      // Disable new-line echo
+        tty.c_lflag &= ~ISIG;                                                        // Disable interpretation of INTR, QUIT and SUSP
+        tty.c_iflag &= ~(IXON | IXOFF | IXANY);                                      // Turn off s/w flow ctrl
         tty.c_iflag &= ~(IGNBRK | BRKINT | PARMRK | ISTRIP | INLCR | IGNCR | ICRNL); // Disable any special handling of received bytes
 
         tty.c_oflag &= ~OPOST; // Prevent special interpretation of output bytes (e.g. newline chars)
@@ -189,16 +198,23 @@ public:
         tty.c_cc[VMIN] = 0;
 
         // Set in/out baud rate to be 9600
-        if (baudrate == 9600) {
+        if (baudrate == 9600)
+        {
             cfsetispeed(&tty, B9600);
             cfsetospeed(&tty, B9600);
-        } else if (baudrate == 19200) {
+        }
+        else if (baudrate == 19200)
+        {
             cfsetispeed(&tty, B19200);
             cfsetospeed(&tty, B19200);
-        } else if (baudrate == 38400) {
+        }
+        else if (baudrate == 38400)
+        {
             cfsetispeed(&tty, B38400);
             cfsetospeed(&tty, B38400);
-        } else if (baudrate == 115200) {
+        }
+        else if (baudrate == 115200)
+        {
             cfsetispeed(&tty, B115200);
             cfsetospeed(&tty, B115200);
         }
@@ -207,7 +223,8 @@ public:
         // status |= TIOCM_RTS; /* turn on RTS */
 
         // Save tty settings, also checking for error
-        if (tcsetattr(serial_port_fd, TCSANOW, &tty) != 0) {
+        if (tcsetattr(serial_port_fd, TCSANOW, &tty) != 0)
+        {
             logger.error("Error %i from tcsetattr: %s", errno, strerror(errno));
             return 1;
         }
@@ -232,12 +249,11 @@ public:
         return _sign * abs(a * 100.0 + b * 10.0 + c + d * 0.1 + e * 0.01);
     }
 
-    uint8_t rion_checksum(char* data, size_t len)
+    uint8_t rion_checksum(char *data, size_t len)
     {
         uint8_t temp = 0;
-        for (size_t i = 0; i < len; i++) {
+        for (size_t i = 0; i < len; i++)
             temp += data[i];
-        }
         return temp;
     }
 
@@ -262,7 +278,8 @@ public:
         //     logger.info("Data: %x", recv_buffer[i]);
         // }
 
-        if (recv_len > 0 && recv_buffer[0] == 0x68 && recv_buffer[1] == 0x1f) {
+        if (recv_len > 0 && recv_buffer[0] == 0x68 && recv_buffer[1] == 0x1f)
+        {
             static const float deg2rad = M_PI / 180;
             float roll = rion_parse(4, 0.01) * deg2rad;
             float pitch = rion_parse(7, 0.01) * deg2rad;
@@ -303,11 +320,14 @@ public:
         size_t recv_len = strlen(recv_buffer);
 
         logger.info("Received===================================: %d", recv_len); //
-        for (size_t i = 0; i < recv_len; i++) {
+        for (size_t i = 0; i < recv_len; i++)
+        {
             // logger.info("Data: %d", recv_buffer[i]);
             // logger.info("Data: %x", recv_buffer[i]);
-            if (recv_buffer[i] == READ_PROTOCOL) {
-                if (recv_buffer[i + 1] == TYPE_ACC) {
+            if (recv_buffer[i] == READ_PROTOCOL)
+            {
+                if (recv_buffer[i + 1] == TYPE_ACC)
+                {
                     int16_t acc_x_buffer;
                     int16_t acc_y_buffer;
                     int16_t acc_z_buffer;
@@ -327,7 +347,9 @@ public:
                     imu_msg.linear_acceleration.x = acc_x;
                     imu_msg.linear_acceleration.y = acc_y;
                     imu_msg.linear_acceleration.z = acc_z;
-                } else if (recv_buffer[i + 1] == TYPE_ANGULAR_VELOCITY) {
+                }
+                else if (recv_buffer[i + 1] == TYPE_ANGULAR_VELOCITY)
+                {
                     int16_t ang_vel_x_buffer;
                     int16_t ang_vel_y_buffer;
                     int16_t ang_vel_z_buffer;
@@ -349,7 +371,9 @@ public:
                     imu_msg.angular_velocity.z = ang_vel_z; //
 
                     logger.info("ang_vel_z: %f", ang_vel_z * 180 / M_PI);
-                } else if (recv_buffer[i + 1] == TYPE_ANGLE) {
+                }
+                else if (recv_buffer[i + 1] == TYPE_ANGLE)
+                {
                     int16_t angle_x_buffer;
                     int16_t angle_y_buffer;
                     int16_t angle_z_buffer;
@@ -380,7 +404,9 @@ public:
                     q_msg.z = q_tf2.z();
                     q_msg.w = q_tf2.w();
                     imu_msg.orientation = q_msg;
-                } else if (recv_buffer[i + 1] == TYPE_MAGNETIC) {
+                }
+                else if (recv_buffer[i + 1] == TYPE_MAGNETIC)
+                {
                     int16_t mag_x;
                     int16_t mag_y;
                     int16_t mag_z;
@@ -397,31 +423,33 @@ public:
     {
         // logger.info("Reading serial");
         boost::asio::async_read(serial_port, boost::asio::buffer(recv_buffer, 256),
-            [this](const boost::system::error_code& error, std::size_t bytes_transferred) {
-                // logger.info("Bytes transferred: %d", bytes_transferred);
-                (void)bytes_transferred;
-                if (!error) {
-                    if (is_riontech)
-                        parse_riontech_data();
-                    else
-                        parse_serial_data();
-                    pub_imu->publish(imu_msg);
-                }
-            });
+                                [this](const boost::system::error_code &error, std::size_t bytes_transferred)
+                                {
+                                    // logger.info("Bytes transferred: %d", bytes_transferred);
+                                    (void)bytes_transferred;
+                                    if (!error)
+                                    {
+                                        if (is_riontech)
+                                            parse_riontech_data();
+                                        else
+                                            parse_serial_data();
+                                        pub_imu->publish(imu_msg);
+                                    }
+                                });
         return 0;
     }
 
     int8_t read_serial()
     {
-        if (is_riontech) {
-            uint8_t serialmsg[] = { 0x68, 0x04, 0x00, 0x04, 0x08 };
+        if (is_riontech)
+        {
+            uint8_t serialmsg[] = {0x68, 0x04, 0x00, 0x04, 0x08};
             write(serial_port_fd, serialmsg, sizeof(serialmsg));
         }
 
         uint16_t bytes_available = 0;
-        if (ioctl(serial_port_fd, FIONREAD, &bytes_available) == -1) {
+        if (ioctl(serial_port_fd, FIONREAD, &bytes_available) == -1)
             return -1;
-        }
 
         // logger.info("Bytes available: %d", bytes_available);
 
@@ -435,9 +463,8 @@ public:
 
         // logger.info("Bytes read: %d", recv_len);
 
-        if (recv_len < 0) {
+        if (recv_len < 0)
             return -1;
-        }
 
         if (is_riontech)
             parse_riontech_data();
@@ -450,7 +477,7 @@ public:
     }
 };
 
-int main(int argc, char* argv[])
+int main(int argc, char *argv[])
 {
     rclcpp::init(argc, argv);
     auto node_imu = std::make_shared<SerialIMU>();

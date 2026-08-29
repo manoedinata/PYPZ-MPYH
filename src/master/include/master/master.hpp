@@ -154,11 +154,11 @@ typedef struct
     float x;
     float y;
     float z;
-    float dist; // Distance to the apriltag in meters
-    float roll; // Roll angle of the apriltag in radians
+    float dist;  // Distance to the apriltag in meters
+    float roll;  // Roll angle of the apriltag in radians
     float pitch; // Pitch angle of the apriltag in radians
-    float yaw; // Yaw angle of the apriltag in radians
-    double t; // Timestamp of the detection in seconds
+    float yaw;   // Yaw angle of the apriltag in radians
+    double t;    // Timestamp of the detection in seconds
 } apriltag_t;
 
 typedef struct
@@ -172,25 +172,26 @@ typedef struct
     float dist_near_zebracross;
     float target_angle_ungu;
     float target_angle_putih;
-    float meter_to_pixel; // Conversion factor from meters to pixels
-    float offset_angle; // Offset angle for zebracross detection
-    float offset_angle_lane; // Offset angle for zebracross detection
-    float dist_near_zebracross_vertical; // Distance to the nearest zebracross in vertical direction
-    float dist_near_zebracross_horizontal; // Distance to the nearest zebracross in horizontal direction
-    float centroid_sign_x; // X coordinate of the centroid of the detected sign
-    float centroid_sign_y; // Y coordinate of the centroid of the detected sign
-    float centroid_obs_x; // X coordinate of the centroid of the detected obstacle
-    float centroid_obs_y; // Y coordinate of the centroid of the detected obstacle
-    float dist_near_zebracross_vertical_kiri; // Distance to the nearest zebracross in vertical direction for left side
+    float meter_to_pixel;                      // Conversion factor from meters to pixels
+    float offset_angle;                        // Offset angle for zebracross detection
+    float offset_angle_lane;                   // Offset angle for zebracross detection
+    float dist_near_zebracross_vertical;       // Distance to the nearest zebracross in vertical direction
+    float dist_near_zebracross_horizontal;     // Distance to the nearest zebracross in horizontal direction
+    float centroid_sign_x;                     // X coordinate of the centroid of the detected sign
+    float centroid_sign_y;                     // Y coordinate of the centroid of the detected sign
+    float centroid_obs_x;                      // X coordinate of the centroid of the detected obstacle
+    float centroid_obs_y;                      // Y coordinate of the centroid of the detected obstacle
+    float dist_near_zebracross_vertical_kiri;  // Distance to the nearest zebracross in vertical direction for left side
     float dist_near_zebracross_vertical_kanan; // Distance to the nearest zebracross in vertical direction for right side
-    int8_t jalan_berkelok; // 0: tidak berkelok, 1: berkelok kanan, 2: berkelok kiri
+    int8_t jalan_berkelok;                     // 0: tidak berkelok, 1: berkelok kanan, 2: berkelok kiri
     int8_t mask_jalan_bocor;
     int8_t ada_pertigaan; // 0: tidak bocor,
     float jarak_ke_pertigaan;
 } vision_urban_t;
 
-class Master : public rclcpp::Node {
-public:
+class Master : public rclcpp::Node
+{
+  public:
     // Callback group
     rclcpp::CallbackGroup::SharedPtr callback_group_subscribers_;
 
@@ -254,9 +255,9 @@ public:
     rclcpp::Service<std_srvs::srv::SetBool>::SharedPtr srv_set_record_route_mode_kiri;
     rclcpp::Service<std_srvs::srv::SetBool>::SharedPtr srv_set_record_route_mode_tengah;
     rclcpp::Service<std_srvs::srv::SetBool>::SharedPtr srv_set_add_record_route_mode;
-    rclcpp::Service<std_srvs::srv::SetBool>::SharedPtr srv_set_terminal; // Aktif -> add terminal, InActive -> save terminal
+    rclcpp::Service<std_srvs::srv::SetBool>::SharedPtr srv_set_terminal;      // Aktif -> add terminal, InActive -> save terminal
     rclcpp::Service<std_srvs::srv::SetBool>::SharedPtr srv_set_terminal_sign; // Aktif -> add terminal, InActive -> save terminal
-    rclcpp::Service<std_srvs::srv::SetBool>::SharedPtr srv_rm_terminal; // Aktif -> add terminal, InActive -> save terminal
+    rclcpp::Service<std_srvs::srv::SetBool>::SharedPtr srv_rm_terminal;       // Aktif -> add terminal, InActive -> save terminal
 
     //----Configs
     //===========================================
@@ -297,10 +298,10 @@ public:
     float offset_jarak_hindar = 0.22;
     float kecepatan_default_menghindar = 0.4; // m/s
 
-    int max_counter_belok_kanan = 100; // untuk mengatur berapa lama mobil belok ke kanan
-    int max_counter_belok_kiri = 100; // untuk mengatur berapa lama mobil belok ke kiri
-    int max_counter_lurus = 30; // untuk mengatur berapa lama mobil mundur
-    int max_counter_lurus_awal_kiri = 30; // untuk mengatur berapa lama mobil mundur
+    int max_counter_belok_kanan = 100;     // untuk mengatur berapa lama mobil belok ke kanan
+    int max_counter_belok_kiri = 100;      // untuk mengatur berapa lama mobil belok ke kiri
+    int max_counter_lurus = 30;            // untuk mengatur berapa lama mobil mundur
+    int max_counter_lurus_awal_kiri = 30;  // untuk mengatur berapa lama mobil mundur
     int max_counter_lurus_awal_kanan = 30; // untuk mengatur berapa lama mobil mundur
 
     int8_t selected_lane = 0; // 1 = kanan, 0 = tengah, -1 = kiri
@@ -359,24 +360,24 @@ public:
 
     float target_velocity = 0;
 
-    float derajat_steering_kanan_ = -32; // derajat steering untuk belok kanan
-    float derajat_steering_kiri_ = 25; // derajat steering untuk belok kiri
-    float encoder_belok_kanan_ = 0; // jarak encoder untuk belok kanan (alternatif jika tanpa gyro)
-    float encoder_belok_kiri_ = 0; // jarak encoder untuk belok kiri (alternatif jika tanpa gyro)
-    float encoder_maju_kanan_ = 0.53; // jarak encoder untuk maju setelah belok kanan (alternatif jika tanpa putih)
-    float encoder_maju_kiri_ = 0.53; // jarak encoder untuk maju setelah belok kiri (alternatif jika tanpa putih)
-    float encoder_maju_lurus_ = 0.53; // jarak encoder untuk maju setelah lurus (alternatif jika tanpa putih)
-    float derajat_gyro_kanan_ = 80; // derajat gyro untuk berhenti setelah belok kanan
-    float derajat_gyro_kiri_ = 80; // derajat gyro untuk berhenti setelah belok kiri
-    float jarak_ke_zebracros_ = 0.3; // jarak berhenti ke zebracross
-    float jarak_ke_putih_ = 0.6; // jarak ke titik putih sebelum berhenti (alternatif jika tanpa zebracross)
-    float min_jarak_putih_kanan_ = 0; // jarak minimum ke titik putih sebelum belok kanan
-    float min_jarak_putih_kiri_ = 0; // jarak minimum ke titik putih sebelum belok kiri
-    float min_jarak_putih_lurus_ = 0; // jarak minimum ke titik putih sebelum lurus
+    float derajat_steering_kanan_ = -32;  // derajat steering untuk belok kanan
+    float derajat_steering_kiri_ = 25;    // derajat steering untuk belok kiri
+    float encoder_belok_kanan_ = 0;       // jarak encoder untuk belok kanan (alternatif jika tanpa gyro)
+    float encoder_belok_kiri_ = 0;        // jarak encoder untuk belok kiri (alternatif jika tanpa gyro)
+    float encoder_maju_kanan_ = 0.53;     // jarak encoder untuk maju setelah belok kanan (alternatif jika tanpa putih)
+    float encoder_maju_kiri_ = 0.53;      // jarak encoder untuk maju setelah belok kiri (alternatif jika tanpa putih)
+    float encoder_maju_lurus_ = 0.53;     // jarak encoder untuk maju setelah lurus (alternatif jika tanpa putih)
+    float derajat_gyro_kanan_ = 80;       // derajat gyro untuk berhenti setelah belok kanan
+    float derajat_gyro_kiri_ = 80;        // derajat gyro untuk berhenti setelah belok kiri
+    float jarak_ke_zebracros_ = 0.3;      // jarak berhenti ke zebracross
+    float jarak_ke_putih_ = 0.6;          // jarak ke titik putih sebelum berhenti (alternatif jika tanpa zebracross)
+    float min_jarak_putih_kanan_ = 0;     // jarak minimum ke titik putih sebelum belok kanan
+    float min_jarak_putih_kiri_ = 0;      // jarak minimum ke titik putih sebelum belok kiri
+    float min_jarak_putih_lurus_ = 0;     // jarak minimum ke titik putih sebelum lurus
     float encoder_maju_dead_end_ = 0.015; // Default value for dead end maneuver
     float velocity_jalan_otomatis = 0.31241;
     float offset_jarak_sign_pole_ = 0.25; // Offset distance from sign pole
-    float last_gyro_angle_ = 78.0f; // Last gyro angle for the robot
+    float last_gyro_angle_ = 78.0f;       // Last gyro angle for the robot
     float min_vel_belokan_ = 0.2;
     float jarak_ke_sign_pole_ = 0.25; // Offset distance to sign pole
 
@@ -476,12 +477,12 @@ public:
     void process_marker();
     void process_local_fsm();
     void process_record_route();
-    void process_record_route(std::vector<waypoint_t>& wps);
+    void process_record_route(std::vector<waypoint_t> &wps);
     void process_add_terminal();
     void process_load_waypoints();
-    void process_load_waypoints_race(std::string file_path, std::vector<waypoint_t>& wps);
+    void process_load_waypoints_race(std::string file_path, std::vector<waypoint_t> &wps);
     void process_save_waypoints();
-    void process_save_waypoints_race(std::string file_path, std::vector<waypoint_t>& wps);
+    void process_save_waypoints_race(std::string file_path, std::vector<waypoint_t> &wps);
     void process_load_terminals();
     void process_save_terminals();
     void process_add_terminal_sign();
@@ -489,12 +490,12 @@ public:
     // Motion
     // ===============================================================================================
     void manual_motion(float vx, float vy, float wz);
-    void wp2velocity_steering(float lookahead_distance, float* pvelocity, float* psteering, bool is_loop = false);
-    void wp2velocity_steering_urban(float lookahead_distance, float* pvelocity, float* psteering, int* counter_diam, point_t arah_belok, int32_t sign_status, bool is_loop = false);
-    void wp2velocity_steering_urban_coba(float lookahead_distance, float* pvelocity, float* psteering, bool diam, bool* masuk_terminal_diam, bool is_loop = false);
-    void wp2velocity_steering_race(float lookahead_distance, float* pvelocity, float* psteering, bool is_loop);
+    void wp2velocity_steering(float lookahead_distance, float *pvelocity, float *psteering, bool is_loop = false);
+    void wp2velocity_steering_urban(float lookahead_distance, float *pvelocity, float *psteering, int *counter_diam, point_t arah_belok, int32_t sign_status, bool is_loop = false);
+    void wp2velocity_steering_urban_coba(float lookahead_distance, float *pvelocity, float *psteering, bool diam, bool *masuk_terminal_diam, bool is_loop = false);
+    void wp2velocity_steering_race(float lookahead_distance, float *pvelocity, float *psteering, bool is_loop);
 
-    int8_t move_forward_distance(float distance_target, float* pvelocity, float start_x, float start_y, float target_distance = 0.2);
+    int8_t move_forward_distance(float distance_target, float *pvelocity, float start_x, float start_y, float target_distance = 0.2);
 
     void follow_waypoints_gas_manual(float vx, float vy, float wz, float lookahead_distance, bool is_loop);
     float pythagoras(float x1, float y1, float x2, float y2);
@@ -504,7 +505,7 @@ public:
     void urban_move(float vx, float vy, float wz);
     void urban_move2(float vx, float vy, float wz, int8_t oto = 0);
     void race_move(float vx, float vy, float wz);
-    void combine_road_obstacle_pcl(int8_t* selected_lane_);
+    void combine_road_obstacle_pcl(int8_t *selected_lane_);
 
     int8_t obstacle_avoidance_move(float vx, float vy, float wz);
     int8_t move_right(float vx, float max_counter, float target_theta);

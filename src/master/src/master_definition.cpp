@@ -98,9 +98,7 @@ void Master::process_load_waypoints()
         while (file.good())
         {
             if (file.peek() == EOF)
-            {
                 break;
-            }
             waypoint_t wp;
             file >> wp.x;
             file.ignore(std::numeric_limits<std::streamsize>::max(), ',');
@@ -137,13 +135,9 @@ void Master::process_load_waypoints()
 
         // Asumsikan heading waypoint terakhir sama dengan sebelumnya
         if (waypoints.size() >= 2)
-        {
             waypoints.back().arah = waypoints[waypoints.size() - 2].arah;
-        }
         else if (waypoints.size() == 1)
-        {
             waypoints.back().arah = 0.0; // default jika hanya 1 waypoint
-        }
 
         logger.info("Read %d waypoints from file %s.", waypoints.size(), waypoint_file_path.c_str());
     }
@@ -170,9 +164,7 @@ void Master::process_load_waypoints_race(std::string file_path, std::vector<wayp
         while (file.good())
         {
             if (file.peek() == EOF)
-            {
                 break;
-            }
             waypoint_t wp;
             file >> wp.x;
             file.ignore(std::numeric_limits<std::streamsize>::max(), ',');
@@ -209,13 +201,9 @@ void Master::process_load_waypoints_race(std::string file_path, std::vector<wayp
 
         // Asumsikan heading waypoint terakhir sama dengan sebelumnya
         if (wps.size() >= 2)
-        {
             wps.back().arah = wps[wps.size() - 2].arah;
-        }
         else if (wps.size() == 1)
-        {
             wps.back().arah = 0.0; // default jika hanya 1 waypoint
-        }
 
         logger.info("Read %d wps from file %s.", wps.size(), file_path.c_str());
     }
@@ -230,9 +218,7 @@ void Master::process_save_waypoints()
     {
         file << "x,y,fb_velocity,fb_steering" << std::endl;
         for (auto i : waypoints)
-        {
             file << i.x << "," << i.y << "," << i.fb_velocity << "," << i.fb_steering << std::endl;
-        }
         file.close();
         logger.info("Saved %d waypoints to file %s.", waypoints.size(), waypoint_file_path.c_str());
     }
@@ -251,9 +237,7 @@ void Master::process_save_waypoints_race(std::string file_path, std::vector<wayp
     {
         file << "x,y,fb_velocity,fb_steering" << std::endl;
         for (auto i : wps)
-        {
             file << i.x << "," << i.y << "," << i.fb_velocity << "," << i.fb_steering << std::endl;
-        }
         file.close();
         logger.info("Saved %d wps to file %s.", wps.size(), file_path.c_str());
     }
@@ -324,15 +308,11 @@ void Master::process_load_terminals()
             while (std::getline(fin, line))
             {
                 if (line.find("type") != std::string::npos)
-                {
                     continue;
-                }
                 boost::split(tokens, line, boost::is_any_of(","));
 
                 for (auto &token : tokens)
-                {
                     boost::trim(token);
-                }
 
                 ros2_interface::msg::Terminal terminal;
                 terminal.type = std::stoi(tokens[0]);

@@ -1,11 +1,11 @@
 #include "rclcpp/rclcpp.hpp"
-#include "ros2_utils/help_logger.hpp"
 #include "ros2_utils/global_definitions.hpp"
+#include "ros2_utils/help_logger.hpp"
 #include "ros2_utils/system_utils.hpp"
 
 class WiFIControl : public rclcpp::Node
 {
-public:
+  public:
     rclcpp::TimerBase::SharedPtr tim_routine;
 
     HelpLogger logger;
@@ -66,9 +66,7 @@ public:
         if (wifi_ssid != "*")
         {
             if (wifi_connected_network == wifi_ssid)
-            {
                 is_wifi_connected = true;
-            }
         }
         else if (wifi_connected_network != "")
         {

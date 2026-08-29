@@ -1,19 +1,19 @@
-#include "rclcpp/rclcpp.hpp"
-#include "ros2_utils/help_logger.hpp"
-#include "ros2_utils/global_definitions.hpp"
 #include "cv_bridge/cv_bridge.h"
-#include "sensor_msgs/msg/image.hpp"
-#include "sensor_msgs/image_encodings.hpp"
-#include "std_msgs/msg/float32.hpp"
 #include "opencv2/opencv.hpp"
+#include "rclcpp/rclcpp.hpp"
+#include "ros2_utils/global_definitions.hpp"
+#include "ros2_utils/help_logger.hpp"
+#include "sensor_msgs/image_encodings.hpp"
+#include "sensor_msgs/msg/image.hpp"
+#include "std_msgs/msg/float32.hpp"
 #include <onnxruntime_cxx_api.h>
 
 #include <chrono>
-#include <iomanip>
-#include <sstream>
+#include <ctime>
 #include <filesystem>
 #include <fstream>
-#include <ctime>
+#include <iomanip>
+#include <sstream>
 #include <thread>
 
 #define WIDTH 160
@@ -21,7 +21,7 @@
 
 class MLDetection : public rclcpp::Node
 {
-public:
+  public:
     rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr pub_image_bgr;
     rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr pub_image_gray;
     rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr pub_image_mask;
@@ -125,9 +125,7 @@ public:
     {
         cv::Mat frame = image_bgr.clone();
         if (frame.rows > 250)
-        {
             frame = frame(cv::Range(250, frame.rows), cv::Range::all());
-        }
 
         cv::resize(frame, frame, cv::Size(WIDTH, HEIGHT));
         frame.convertTo(frame, CV_32F, 1.0 / 255.0);

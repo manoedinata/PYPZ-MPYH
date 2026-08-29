@@ -23,8 +23,9 @@
 #define CAN_COBID_TX 0x600
 #define CAN_COBID_TX_DEFAULT 0x200
 
-class CANbusHAL : public rclcpp::Node {
-public:
+class CANbusHAL : public rclcpp::Node
+{
+  public:
     rclcpp::TimerBase::SharedPtr tim_routine;
     rclcpp::Publisher<std_msgs::msg::Int16>::SharedPtr pub_wheel_encoder;
     rclcpp::Publisher<std_msgs::msg::Int16>::SharedPtr pub_delta_encoder_wheel_counter;
@@ -41,8 +42,8 @@ public:
     int bitrate = 125000;
     int routine_period_ms = 20; // ms
     int max_can_recv_error_counter = 10;
-    int can_timeout_us = 100000; // us
-    int id_driver_wheel = 0x04; // motor
+    int can_timeout_us = 100000;   // us
+    int id_driver_wheel = 0x04;    // motor
     int id_driver_steering = 0x08; // servo
     int max_target_steering = 99999;
 
@@ -87,7 +88,8 @@ public:
         this->declare_parameter<int>("id_driver_steering", 0x08);
         this->get_parameter("id_driver_steering", id_driver_steering);
 
-        if (!logger.init()) {
+        if (!logger.init())
+        {
             RCLCPP_ERROR(this->get_logger(), "Failed to initialize logger");
             rclcpp::shutdown();
         }
@@ -113,7 +115,8 @@ public:
         start_time = clock->now();
 
         socket_can = can_init(if_name.c_str());
-        if (socket_can < 0) {
+        if (socket_can < 0)
+        {
             RCLCPP_ERROR(this->get_logger(), "Failed to initialize CAN interface");
             rclcpp::shutdown();
         }
@@ -141,7 +144,8 @@ public:
     void callback_sub_keyboard(const std_msgs::msg::Int16::SharedPtr msg)
     {
         // logger.info("key pressed: %d", msg->data);
-        switch (msg->data) {
+        switch (msg->data)
+        {
         case 'q':
             target_pwm_wheel = 1000;
             break;
@@ -185,14 +189,14 @@ public:
 
     ~CANbusHAL()
     {
-        if (can_thread_.joinable()) {
+        if (can_thread_.joinable())
             can_thread_.join(); // Ensure the thread is joined before exiting
-        }
     }
 
     void callback_routine()
     {
-        while (rclcpp::ok()) {
+        while (rclcpp::ok())
+        {
             poll_can();
             send_can();
             send_sync();
@@ -233,9 +237,8 @@ public:
         frame.data[4] |= (target_steering >> 8) & 0b1000000;
         frame.data[4] |= (steering_enable << 7);
 
-        if (write(socket_can, &frame, sizeof(frame)) != sizeof(frame)) {
+        if (write(socket_can, &frame, sizeof(frame)) != sizeof(frame))
             logger.error("Failed to send CAN frame");
-        }
     }
 
     // void poll_can()
@@ -284,7 +287,8 @@ public:
         counter_ditemukan = 0;
         counter_can_recv_error = 0;
 
-        while (counter_ditemukan < MAX_CAN_DEVICES && counter_can_recv_error < max_can_recv_error_counter) {
+        while (counter_ditemukan < MAX_CAN_DEVICES && counter_can_recv_error < max_can_recv_error_counter)
+        {
             // Read the CAN frame
             struct can_frame frame;
             fd_set read_fds;
@@ -302,11 +306,14 @@ public:
             // Wait for data to be available on the set
             retval = select(socket_can + 1, &read_fds, NULL, NULL, &timeout);
 
-            if (retval == -1) {
+            if (retval == -1)
+            {
                 logger.error("Select error on CAN socket");
                 counter_can_recv_error++;
                 continue;
-            } else if (retval == 0) {
+            }
+            else if (retval == 0)
+            {
                 logger.warn("CAN socket read timeout");
                 counter_can_recv_error++;
                 continue;
@@ -319,9 +326,10 @@ public:
         }
     }
 
-    void parse_can_frame(struct can_frame* frame)
+    void parse_can_frame(struct can_frame *frame)
     {
-        if (frame->can_id == (CAN_COBID_RX + (uint8_t)id_driver_wheel)) {
+        if (frame->can_id == (CAN_COBID_RX + (uint8_t)id_driver_wheel))
+        {
             static int16_t prev_encoder_wheel_counter = 0;
 
             encoder_wheel_counter = (frame->data[0] << 8) | frame->data[1];
@@ -329,7 +337,9 @@ public:
             prev_encoder_wheel_counter = encoder_wheel_counter;
 
             counter_ditemukan++;
-        } else if (frame->can_id == (CAN_COBID_RX + (uint8_t)id_driver_steering)) {
+        }
+        else if (frame->can_id == (CAN_COBID_RX + (uint8_t)id_driver_steering))
+        {
             feedback_steering = (frame->data[0] << 8) | frame->data[1];
             counter_ditemukan++;
         }
@@ -341,9 +351,8 @@ public:
         frame.can_id = 0x80;
         frame.can_dlc = 0;
 
-        if (write(socket_can, &frame, sizeof(frame)) != sizeof(frame)) {
+        if (write(socket_can, &frame, sizeof(frame)) != sizeof(frame))
             logger.error("Failed to send CAN frame");
-        }
     }
 
     void transmit_all()
@@ -361,11 +370,12 @@ public:
         pub_feedback_steering->publish(msg_feedback_steering);
     }
 
-    int get_ifindex_from_sysfs(const std::string& iface)
+    int get_ifindex_from_sysfs(const std::string &iface)
     {
         std::string path = "/sys/class/net/" + iface + "/ifindex";
         std::ifstream file(path);
-        if (!file.is_open()) {
+        if (!file.is_open())
+        {
             std::cerr << "Failed to open " << path << std::endl;
             return -1;
         }
@@ -375,13 +385,14 @@ public:
         return index;
     }
 
-    int8_t can_init(const std::string& interface_name)
+    int8_t can_init(const std::string &interface_name)
     {
         int8_t s;
         struct sockaddr_can addr;
         struct ifreq ifr;
 
-        if ((s = socket(PF_CAN, SOCK_RAW, CAN_RAW)) < 0) {
+        if ((s = socket(PF_CAN, SOCK_RAW, CAN_RAW)) < 0)
+        {
             perror("Error while opening socket");
             return -1;
         }
@@ -392,7 +403,8 @@ public:
         addr.can_family = AF_CAN;
         addr.can_ifindex = ifr.ifr_ifindex;
 
-        if (bind(s, (struct sockaddr*)&addr, sizeof(addr)) < 0) {
+        if (bind(s, (struct sockaddr *)&addr, sizeof(addr)) < 0)
+        {
             perror("Error in socket bind");
             return -1;
         }
@@ -401,7 +413,7 @@ public:
     }
 };
 
-int main(int argc, char** argv)
+int main(int argc, char **argv)
 {
     rclcpp::init(argc, argv);
 

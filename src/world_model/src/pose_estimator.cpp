@@ -14,8 +14,9 @@
 #include "tf2_ros/transform_broadcaster.h"
 #include "tf2_ros/transform_listener.h"
 
-class PoseEstimator : public rclcpp::Node {
-public:
+class PoseEstimator : public rclcpp::Node
+{
+  public:
     rclcpp::TimerBase::SharedPtr tim_routine;
     rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr pub_odom;
     rclcpp::Publisher<std_msgs::msg::Float32>::SharedPtr pub_enc_meter;
@@ -63,7 +64,8 @@ public:
         this->declare_parameter<int>("routine_period_ms", 20);
         this->get_parameter("routine_period_ms", routine_period_ms);
 
-        if (!logger.init()) {
+        if (!logger.init())
+        {
             RCLCPP_ERROR(this->get_logger(), "Failed to initialize logger");
             rclcpp::shutdown();
         }
@@ -121,10 +123,10 @@ public:
 
         static uint16_t init_gyro_counter = 0;
 
-        if (!is_gyro_initialized) {
-            if (init_gyro_counter++ > 50) {
+        if (!is_gyro_initialized)
+        {
+            if (init_gyro_counter++ > 50)
                 is_gyro_initialized = true;
-            }
             prev_gyro = gyro; // Memastikan 0
         }
     }
@@ -143,7 +145,8 @@ public:
 
         rclcpp::Duration dt_gyro = current_time - last_time_gyro_update;
         static rclcpp::Duration prev_dt_gyro = dt_gyro;
-        if ((prev_dt_gyro.seconds() > 0.12 && dt_gyro.seconds() <= 0.12) || fabs(d_gyro) > 7.28 || !is_gyro_initialized) {
+        if ((prev_dt_gyro.seconds() > 0.12 && dt_gyro.seconds() <= 0.12) || fabs(d_gyro) > 7.28 || !is_gyro_initialized)
+        {
             logger.warn("Gyro restarted");
             d_gyro = 0;
         }
@@ -228,7 +231,7 @@ public:
     }
 };
 
-int main(int argc, char** argv)
+int main(int argc, char **argv)
 {
     rclcpp::init(argc, argv);
 

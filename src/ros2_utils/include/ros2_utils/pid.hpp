@@ -5,7 +5,7 @@
 
 class PID
 {
-private:
+  private:
     float Kp;
     float Ki;
     float Kd;
@@ -21,7 +21,7 @@ private:
     float output_speed;
     std::chrono::system_clock::time_point last_call;
 
-public:
+  public:
     PID()
     {
         this->Kp = 0;

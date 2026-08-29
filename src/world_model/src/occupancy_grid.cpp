@@ -1,18 +1,18 @@
+#include "ros2_utils/global_definitions.hpp"
+#include "ros2_utils/help_logger.hpp"
+#include <geometry_msgs/msg/transform_stamped.hpp>
+#include <nav_msgs/msg/occupancy_grid.hpp>
+#include <pcl/point_cloud.h>
+#include <pcl/point_types.h>
+#include <pcl_conversions/pcl_conversions.h>
 #include <rclcpp/rclcpp.hpp>
 #include <sensor_msgs/msg/point_cloud2.hpp>
-#include <nav_msgs/msg/occupancy_grid.hpp>
-#include <tf2_ros/transform_listener.h>
-#include <tf2_ros/buffer.h>
-#include <geometry_msgs/msg/transform_stamped.hpp>
-#include <tf2_eigen/tf2_eigen.hpp>
-#include <pcl_conversions/pcl_conversions.h>
-#include <pcl/point_types.h>
-#include <pcl/point_cloud.h>
-#include <tf2_sensor_msgs/tf2_sensor_msgs.h>
-#include "ros2_utils/help_logger.hpp"
-#include "ros2_utils/global_definitions.hpp"
 #include <tf2/utils.h>
+#include <tf2_eigen/tf2_eigen.hpp>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
+#include <tf2_ros/buffer.h>
+#include <tf2_ros/transform_listener.h>
+#include <tf2_sensor_msgs/tf2_sensor_msgs.h>
 
 using PointT = pcl::PointXYZ;
 using PointCloudT = pcl::PointCloud<PointT>;
@@ -25,7 +25,7 @@ struct ObstacleMemory
 
 class OccupancyProcessorNode : public rclcpp::Node
 {
-public:
+  public:
     float res = 0.02f;            // 2 cm
     int width = 100;              // 2 meter
     int height = 100;             // 2 meter
@@ -150,9 +150,7 @@ public:
 
         // Tambahkan obstacle memory (buffer)
         for (const auto &pt : latest_obstacle_->points)
-        {
             memory_.push_back({pt, now});
-        }
 
         // Marking obstacle memory ke grid
         for (const auto &mem : memory_)
@@ -167,9 +165,7 @@ public:
             {
                 tf_buffer_.transform(pt_in, pt_out, "base_link", tf2::durationFromSec(0.05));
                 if ((now - mem.last_seen).seconds() <= memory_timeout_sec_)
-                {
                     markCell(grid, mem.point.x, mem.point.y, ox, oy, res, width, height, 100);
-                }
             }
             catch (tf2::TransformException &ex)
             {
@@ -179,9 +175,7 @@ public:
 
         // Marking road points sebagai OCCUPIED (100)
         for (const auto &pt : latest_road_->points)
-        {
             markCell(grid, pt.x, pt.y, ox, oy, res, width, height, 100);
-        }
 
         // Blind spot masking di sekitar robot dalam frame map
         for (float dx = -blind_spot_radius_; dx <= blind_spot_radius_; dx += 0.05f)
@@ -252,9 +246,7 @@ public:
                 int gx = static_cast<int>((x - ox) / res);
                 int gy = static_cast<int>((y - oy) / res);
                 if (gx >= 0 && gx < width && gy >= 0 && gy < height)
-                {
                     grid.data[gy * width + gx] = 0; // FREE
-                }
             }
         }
     }

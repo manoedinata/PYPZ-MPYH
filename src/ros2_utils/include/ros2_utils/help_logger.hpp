@@ -18,12 +18,12 @@
 
 class HelpLogger
 {
-private:
+  private:
     bool _is_initialized = false;
 
     std::shared_ptr<spdlog::logger> _logger;
 
-public:
+  public:
     HelpLogger();
 
     bool is_initialized();

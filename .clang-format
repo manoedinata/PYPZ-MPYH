@@ -1,0 +1,19 @@
+---
+Language: Cpp
+BasedOnStyle: LLVM
+
+# VS Code uses your current editor settings for these two. 
+# 4 spaces is the standard default.
+IndentWidth: 4
+UseTab: Never
+
+# The core overrides that make up the "Visual Studio" style
+BreakBeforeBraces: Allman
+AllowShortIfStatementsOnASingleLine: false
+IndentCaseLabels: false
+ColumnLimit: 0
+NamespaceIndentation: All
+
+# Custom formatting rules
+RemoveBracesLLVM: true
+...

@@ -77,7 +77,8 @@
 #include <tf2_ros/buffer.h>
 #include <tf2_ros/transform_listener.h>
 
-enum TrafficSign {
+enum TrafficSign
+{
     NO_ENTRY = 0,
     DEAD_END = 1,
     RIGHT = 2,
@@ -95,8 +96,9 @@ enum TrafficSign {
 typedef pcl::PointCloud<pcl::PointXYZRGB> point_cloud;
 typedef point_cloud::Ptr cloud_pointer;
 
-class VisionCapture3 : public rclcpp::Node {
-private:
+class VisionCapture3 : public rclcpp::Node
+{
+  private:
     // -------------------------------------------------
     // Transform
     // -------------------------------------------------
@@ -276,17 +278,17 @@ private:
     // Fuzzy Variables
     // -------------------------------------------------
     float straight_center_ = 0.0; // STRAIGHT_PARAMS[0]
-    float straight_sigma_ = 7.0; // STRAIGHT_PARAMS[1]
+    float straight_sigma_ = 7.0;  // STRAIGHT_PARAMS[1]
 
     float wiggle_center_ = 17.5; // WIGGLE_PARAMS[0]
-    float wiggle_sigma_ = 7.0; // WIGGLE_PARAMS[1]
+    float wiggle_sigma_ = 7.0;   // WIGGLE_PARAMS[1]
 
     float curve_center_ = 35.0; // CURVE_PARAMS[0]
-    float curve_sigma_ = 7.0; // CURVE_PARAMS[1]
+    float curve_sigma_ = 7.0;   // CURVE_PARAMS[1]
 
     float speed_straight_ = 1.2; // SPEED_STRAIGHT
-    float speed_wiggle_ = 0.95; // SPEED_WIGGLE
-    float speed_curve_ = 0.7; // SPEED_CURVE
+    float speed_wiggle_ = 0.95;  // SPEED_WIGGLE
+    float speed_curve_ = 0.7;    // SPEED_CURVE
 
     float lookahead_straight_distance_ = 0.0f;
     float lookahead_wiggle_distance_ = 0.0f;
@@ -305,25 +307,24 @@ private:
     rs2::config cfg_;
     bool pipeline_started_ = false;
     std::mutex pipeline_mutex_;
-    rs2::align align_to_color { RS2_STREAM_COLOR };
+    rs2::align align_to_color{RS2_STREAM_COLOR};
     rs2::pointcloud pc_;
     rs2::rates_printer printer_;
     // -------------------------------------------------
     // Shutdown handling
     // -------------------------------------------------
-    std::atomic<bool> shutdown_requested_ { false };
+    std::atomic<bool> shutdown_requested_{false};
 
     // Video recording
     cv::VideoWriter video_writer_color_;
     cv::VideoWriter video_writer_bev_color_color_;
 
-public:
+  public:
     VisionCapture3()
-        : Node("vision_capture3")
-        , tf_buffer_(this->get_clock())
-        , tf_listener_(tf_buffer_)
+        : Node("vision_capture3"), tf_buffer_(this->get_clock()), tf_listener_(tf_buffer_)
     {
-        if (!logger.init()) {
+        if (!logger.init())
+        {
             RCLCPP_ERROR(this->get_logger(), "Failed to initialize logger");
             rclcpp::shutdown();
         }
@@ -390,26 +391,27 @@ public:
         lookahead_near_pixel_ = static_cast<int>(lookahead_near_meter_ * meter_to_pixel_);
 
         logger.info("Lookahead %.2f m (%d px) far, %.2f m (%d px) near",
-            lookahead_far_meter_, lookahead_far_pixel_,
-            lookahead_near_meter_, lookahead_near_pixel_);
+                    lookahead_far_meter_, lookahead_far_pixel_,
+                    lookahead_near_meter_, lookahead_near_pixel_);
 
         // --------------------------------------------------
         // Initialize RealSense context and check for devices
         // --------------------------------------------------
         rs2::context ctx;
         rs2::device_list devices = ctx.query_devices();
-        if (devices.size() == 0) {
+        if (devices.size() == 0)
+        {
             std::cerr << "No RealSense devices found." << std::endl;
             return;
         }
 
-        for (const auto& dev : devices) {
+        for (const auto &dev : devices)
             print_device_info(dev);
-        }
         // --------------------------------------------------
         // Configure and start RealSense pipeline
         // --------------------------------------------------
-        try {
+        try
+        {
             cfg_.enable_stream(RS2_STREAM_COLOR, 640, 360, RS2_FORMAT_BGR8, 60);
             cfg_.enable_stream(RS2_STREAM_DEPTH, 640, 360, RS2_FORMAT_Z16, 60);
 
@@ -417,7 +419,8 @@ public:
 
             auto device = pipe_.get_active_profile().get_device();
             auto color_sensor = device.first<rs2::color_sensor>();
-            if (color_sensor) {
+            if (color_sensor)
+            {
                 // First disable auto white balance
                 // color_sensor.set_option(RS2_OPTION_ENABLE_AUTO_WHITE_BALANCE, 0.0f);
 
@@ -460,7 +463,9 @@ public:
             pipeline_started_ = true;
 
             logger.info("RealSense pipeline started successfully");
-        } catch (const rs2::error& e) {
+        }
+        catch (const rs2::error &e)
+        {
             logger.error("Failed to start RealSense pipeline: %s", e.what());
             return;
         }
@@ -559,13 +564,17 @@ public:
         // --------------------------------------------------
         // Wait for TF to be initialized
         // --------------------------------------------------
-        while (!tf_is_initialized) {
+        while (!tf_is_initialized)
+        {
             rclcpp::sleep_for(std::chrono::seconds(1));
-            try {
+            try
+            {
                 tf_camera_base_ = tf_buffer_.lookupTransform("base_link", "camera_color_optical_frame", tf2::TimePointZero);
                 tf_base_camera_ = tf_buffer_.lookupTransform("camera_color_optical_frame", "base_link", tf2::TimePointZero);
                 tf_is_initialized = true;
-            } catch (const tf2::TransformException& ex) {
+            }
+            catch (const tf2::TransformException &ex)
+            {
                 logger.warn("TF not ready: %s", ex.what());
                 rclcpp::sleep_for(std::chrono::milliseconds(100));
             }
@@ -581,7 +590,7 @@ public:
         cleanup_realsense();
     }
 
-private:
+  private:
     void callback_tim_img_routine()
     {
         cv::Mat color_image_raw;
@@ -608,7 +617,8 @@ private:
         {
             std::lock_guard<std::mutex> lock(image_mutex_);
 
-            if (color_image_.empty() || depth_image_.empty()) {
+            if (color_image_.empty() || depth_image_.empty())
+            {
                 logger.warn("Images not yet available, skipping overlay generation");
                 return;
             }
@@ -656,18 +666,18 @@ private:
         // Transform points in 3d to matrix image using project realsense function
         // Define ground plane corners in world coordinates (base_link frame)
         // These points define a rectangular area on the ground that will be transformed to BEV
-        float ground_width = 1.0f; // 1 meter wide (-0.5 to +0.5)
+        float ground_width = 1.0f;  // 1 meter wide (-0.5 to +0.5)
         float ground_length = 2.0f; // 2 meters deep (0.5 to 2.5)
         float ground_height = 0.0f; // Ground level
 
         // 3D points defining the ground plane rectangle in base_link coordinates
-        float point_3d_left_bottom[3] = { 0.5f, -ground_width / 2, ground_height }; // Close left
-        float point_3d_right_bottom[3] = { 0.5f, ground_width / 2, ground_height }; // Close right
-        float point_3d_left_top[3] = { 0.5f + ground_length, -ground_width / 2, ground_height }; // Far left
-        float point_3d_right_top[3] = { 0.5f + ground_length, ground_width / 2, ground_height }; // Far right
+        float point_3d_left_bottom[3] = {0.5f, -ground_width / 2, ground_height};              // Close left
+        float point_3d_right_bottom[3] = {0.5f, ground_width / 2, ground_height};              // Close right
+        float point_3d_left_top[3] = {0.5f + ground_length, -ground_width / 2, ground_height}; // Far left
+        float point_3d_right_top[3] = {0.5f + ground_length, ground_width / 2, ground_height}; // Far right
 
-        float point_3d_look_ahead_far[3] = { 1.0f, 0.0f, ground_height }; // Look ahead point
-        float point_3d_look_ahead_near[3] = { 0.5f, 0.0f, ground_height }; // Look ahead point
+        float point_3d_look_ahead_far[3] = {1.0f, 0.0f, ground_height};  // Look ahead point
+        float point_3d_look_ahead_near[3] = {0.5f, 0.0f, ground_height}; // Look ahead point
 
         float camera_point_left_bottom[3], camera_point_right_bottom[3];
         float camera_point_left_top[3], camera_point_right_top[3];
@@ -709,8 +719,8 @@ private:
         cv::putText(realsense_projection, camera_size, cv::Point(10, 30), cv::FONT_HERSHEY_SIMPLEX, 0.7, cv::Scalar(200), 2);
 
         // Draw filled polygon instead of lines
-        std::vector<cv::Point> polygon_points = { left_bottom, right_bottom, right_top, left_top };
-        cv::fillPoly(realsense_projection, std::vector<std::vector<cv::Point>> { polygon_points }, cv::Scalar(255));
+        std::vector<cv::Point> polygon_points = {left_bottom, right_bottom, right_top, left_top};
+        cv::fillPoly(realsense_projection, std::vector<std::vector<cv::Point>>{polygon_points}, cv::Scalar(255));
 
         // Define source points (corners of the projected ground rectangle)
         std::vector<cv::Point2f> src_points;
@@ -723,8 +733,8 @@ private:
         std::vector<cv::Point2f> dst_points;
         dst_points.push_back(cv::Point2f(300, bev_height - 50)); // left_bottom -> bottom_right
         dst_points.push_back(cv::Point2f(100, bev_height - 50)); // right_bottom -> bottom_left
-        dst_points.push_back(cv::Point2f(300, 50)); // left_top -> top_right
-        dst_points.push_back(cv::Point2f(100, 50)); // right_top -> top_left
+        dst_points.push_back(cv::Point2f(300, 50));              // left_top -> top_right
+        dst_points.push_back(cv::Point2f(100, 50));              // right_top -> top_left
 
         // Calculate perspective transformation matrix
         cv::Mat perspective_matrix = cv::getPerspectiveTransform(src_points, dst_points);
@@ -767,7 +777,7 @@ private:
                 std::swap(controlbox_data[8], controlbox_data[11]);
 
             cv::inRange(yuv_frame, cv::Scalar(controlbox_data[6], controlbox_data[7], controlbox_data[8]),
-                cv::Scalar(controlbox_data[9], controlbox_data[10], controlbox_data[11]), thres_yuv);
+                        cv::Scalar(controlbox_data[9], controlbox_data[10], controlbox_data[11]), thres_yuv);
         }
 
         // filter small noise
@@ -777,11 +787,9 @@ private:
         // Remove small connected components (area < 50 px)
         std::vector<std::vector<cv::Point>> contours_yuv;
         cv::findContours(thres_yuv.clone(), contours_yuv, cv::RETR_EXTERNAL, cv::CHAIN_APPROX_SIMPLE);
-        for (size_t i = 0; i < contours_yuv.size(); ++i) {
-            if (cv::contourArea(contours_yuv[i]) < 50) {
+        for (size_t i = 0; i < contours_yuv.size(); ++i)
+            if (cv::contourArea(contours_yuv[i]) < 50)
                 cv::drawContours(thres_yuv, contours_yuv, static_cast<int>(i), cv::Scalar(0), cv::FILLED);
-            }
-        }
 
         findPointCloudSign(thres_yuv, depth_thres, depth_image, center_cam_x_, center_cam_y_, intrinsics);
         cv::warpPerspective(depth_thres, depth_thres_bev, perspective_matrix, cv::Size(bev_width, bev_height));
@@ -811,7 +819,7 @@ private:
                 std::swap(controlbox_data[14], controlbox_data[17]);
 
             cv::inRange(obs_frame, cv::Scalar(controlbox_data[12], controlbox_data[13], controlbox_data[14]),
-                cv::Scalar(controlbox_data[15], controlbox_data[16], controlbox_data[17]), real_obs_thres_yuv);
+                        cv::Scalar(controlbox_data[15], controlbox_data[16], controlbox_data[17]), real_obs_thres_yuv);
         }
 
         // perbesaran obstacle asli untuk masking sign
@@ -862,7 +870,7 @@ private:
                 std::swap(controlbox_data[2], controlbox_data[5]);
 
             cv::inRange(bev_hsv_frame, cv::Scalar(0, 0, controlbox_data[2]),
-                cv::Scalar(controlbox_data[3], controlbox_data[4], controlbox_data[5]), bev_binary_raw);
+                        cv::Scalar(controlbox_data[3], controlbox_data[4], controlbox_data[5]), bev_binary_raw);
         }
         {
             int bs = controlbox_data[0] % 2 == 0 ? controlbox_data[0] + 1 : controlbox_data[0];
@@ -879,15 +887,14 @@ private:
                 c);
         }
 
-        if (used_threshold_) {
+        if (used_threshold_)
             bev_binary = bev_binary_adaptive.clone();
-        } else {
+        else
             bev_binary = bev_binary_raw.clone();
-        }
 
         cv::rectangle(bev_binary, cv::Point(0, 0),
-            cv::Point(bev_width, bev_height * 1 / 2),
-            cv::Scalar(0), -1);
+                      cv::Point(bev_width, bev_height * 1 / 2),
+                      cv::Scalar(0), -1);
 
         cv::bitwise_or(bev_binary, obs_thres_bev, bev_binary);
         cv::bitwise_or(bev_binary, real_obs_thres_bev, bev_binary);
@@ -926,9 +933,9 @@ private:
         float target_y_min = robot_position.y - sin((-max_steering_deg_ + 90) * M_PI / 180) * lookahead_far_pixel_;
 
         cv::line(bev_color_image, cv::Point(robot_position.x, robot_position.y),
-            cv::Point(target_x_max, target_y_max), cv::Scalar(0, 255, 255), 2);
+                 cv::Point(target_x_max, target_y_max), cv::Scalar(0, 255, 255), 2);
         cv::line(bev_color_image, cv::Point(robot_position.x, robot_position.y),
-            cv::Point(target_x_min, target_y_min), cv::Scalar(0, 255, 255), 2);
+                 cv::Point(target_x_min, target_y_min), cv::Scalar(0, 255, 255), 2);
 
         //! ==================================================
         //!      Draw Robot and look ahead distance end
@@ -972,8 +979,10 @@ private:
         //? =======================================================
         cv::Mat rectangle = cv::Mat::zeros(bev_color_image.size(), CV_8UC1);
         // Process each contour to find rotated rectangles
-        for (const auto& contour : contours) {
-            if (cv::contourArea(contour) > 50) { // Filter small contours
+        for (const auto &contour : contours)
+        {
+            if (cv::contourArea(contour) > 50)
+            { // Filter small contours
                 // Get minimum area rotated rectangle
                 cv::RotatedRect rotated_rect = cv::minAreaRect(contour);
 
@@ -984,16 +993,16 @@ private:
                 double confidence = (contour_area / rect_area) * 100.0;
 
                 // Only process rectangles with 80% confidence or higher
-                if (confidence >= 50.0 && (rotated_rect.size.width < 60 && rotated_rect.size.height < 60)) {
+                if (confidence >= 50.0 && (rotated_rect.size.width < 60 && rotated_rect.size.height < 60))
+                {
                     // Get the 4 corner points of the rotated rectangle
                     cv::Point2f vertices[4];
                     rotated_rect.points(vertices);
 
                     // Draw the rotated rectangle
-                    for (int i = 0; i < 4; i++) {
+                    for (int i = 0; i < 4; i++)
                         cv::line(bev_color_image, vertices[i], vertices[(i + 1) % 4], cv::Scalar(0, 255, 0), 2);
-                    }
-                    cv::fillPoly(rectangle, std::vector<cv::Point> { cv::Point(vertices[0]), cv::Point(vertices[1]), cv::Point(vertices[2]), cv::Point(vertices[3]) }, cv::Scalar(255));
+                    cv::fillPoly(rectangle, std::vector<cv::Point>{cv::Point(vertices[0]), cv::Point(vertices[1]), cv::Point(vertices[2]), cv::Point(vertices[3])}, cv::Scalar(255));
 
                     // Draw center point and angle
                     // cv::circle(bev_color_image, rotated_rect.center, 5, cv::Scalar(255, 0, 0), -1);
@@ -1021,50 +1030,53 @@ private:
         std::vector<bool> visited(detected_points.size(), false);
 
         float eps = 30.0f; // Maximum distance between points in same cluster
-        int minPts = 2; // Minimum points required to form cluster
+        int minPts = 2;    // Minimum points required to form cluster
 
-        for (size_t i = 0; i < detected_points.size(); i++) {
+        for (size_t i = 0; i < detected_points.size(); i++)
+        {
             if (visited[i])
                 continue;
 
             std::vector<int> neighbors;
             // Find neighbors within eps distance
-            for (size_t j = 0; j < detected_points.size(); j++) {
+            for (size_t j = 0; j < detected_points.size(); j++)
+            {
                 float dist = cv::norm(detected_points[i] - detected_points[j]);
-                if (dist <= eps) {
+                if (dist <= eps)
                     neighbors.push_back(j);
-                }
             }
 
             // If enough neighbors, create cluster
-            if (neighbors.size() >= minPts) {
+            if (neighbors.size() >= minPts)
+            {
                 std::vector<cv::Point> cluster;
                 std::queue<int> seeds(std::deque<int>(neighbors.begin(), neighbors.end()));
 
-                while (!seeds.empty()) {
+                while (!seeds.empty())
+                {
                     int current = seeds.front();
                     seeds.pop();
 
-                    if (!visited[current]) {
+                    if (!visited[current])
+                    {
                         visited[current] = true;
                         cluster.push_back(detected_points[current]);
 
                         // Find neighbors of current point
                         std::vector<int> currentNeighbors;
-                        for (size_t k = 0; k < detected_points.size(); k++) {
+                        for (size_t k = 0; k < detected_points.size(); k++)
+                        {
                             float dist = cv::norm(detected_points[current] - detected_points[k]);
-                            if (dist <= eps) {
+                            if (dist <= eps)
                                 currentNeighbors.push_back(k);
-                            }
                         }
 
                         // Add new neighbors to seeds if enough points
-                        if (currentNeighbors.size() >= minPts) {
-                            for (int neighbor : currentNeighbors) {
-                                if (!visited[neighbor]) {
+                        if (currentNeighbors.size() >= minPts)
+                        {
+                            for (int neighbor : currentNeighbors)
+                                if (!visited[neighbor])
                                     seeds.push(neighbor);
-                                }
-                            }
                         }
                     }
                 }
@@ -1119,33 +1131,31 @@ private:
 
         // Sort clusters by distance from robot position
         std::sort(clusters.begin(), clusters.end(),
-            [&robot_position](const std::vector<cv::Point>& a, const std::vector<cv::Point>& b) {
-                // Calculate average distance for cluster a
-                float totalDistA = 0.0f;
-                for (const auto& point : a) {
-                    totalDistA += cv::norm(point - robot_position);
-                }
-                float avgDistA = totalDistA / a.size();
+                  [&robot_position](const std::vector<cv::Point> &a, const std::vector<cv::Point> &b)
+                  {
+                      // Calculate average distance for cluster a
+                      float totalDistA = 0.0f;
+                      for (const auto &point : a)
+                          totalDistA += cv::norm(point - robot_position);
+                      float avgDistA = totalDistA / a.size();
 
-                // Calculate average distance for cluster b
-                float totalDistB = 0.0f;
-                for (const auto& point : b) {
-                    totalDistB += cv::norm(point - robot_position);
-                }
-                float avgDistB = totalDistB / b.size();
+                      // Calculate average distance for cluster b
+                      float totalDistB = 0.0f;
+                      for (const auto &point : b)
+                          totalDistB += cv::norm(point - robot_position);
+                      float avgDistB = totalDistB / b.size();
 
-                return avgDistA < avgDistB;
-            });
+                      return avgDistA < avgDistB;
+                  });
 
         // Limit to 4 closest clusters
-        if (clusters.size() > 4) {
+        if (clusters.size() > 4)
             clusters.resize(4);
-        }
 
         // Draw clusters with different colors
-        cv::Scalar colors[] = { cv::Scalar(255, 0, 0), cv::Scalar(0, 255, 0),
-            cv::Scalar(0, 0, 255), cv::Scalar(255, 255, 0),
-            cv::Scalar(255, 0, 255), cv::Scalar(0, 255, 255) };
+        cv::Scalar colors[] = {cv::Scalar(255, 0, 0), cv::Scalar(0, 255, 0),
+                               cv::Scalar(0, 0, 255), cv::Scalar(255, 255, 0),
+                               cv::Scalar(255, 0, 255), cv::Scalar(0, 255, 255)};
 
         float offset_angle_zebracross = 0.0f;
         uint8_t is_offset_angle_zebracross = 0;
@@ -1160,36 +1170,45 @@ private:
         std::vector<cv::Point> centroid_cluster_vertical;
         std::vector<cv::Point> centroid_cluster_horizontal;
 
-        for (size_t i = 0; i < clusters.size(); i++) {
+        for (size_t i = 0; i < clusters.size(); i++)
+        {
             // Skip small clusters
-            if (clusters[i].size() < 4) {
+            if (clusters[i].size() < 4)
+            {
                 clusters.erase(clusters.begin() + i);
                 i--;
                 continue;
             }
 
-            cv::Point centroid_cluster_ = { 0, 0 };
-            centroid_cluster_.x = std::accumulate(clusters[i].begin(), clusters[i].end(), 0, [](int sum, const cv::Point& p) { return sum + p.x; }) / clusters[i].size();
-            centroid_cluster_.y = std::accumulate(clusters[i].begin(), clusters[i].end(), 0, [](int sum, const cv::Point& p) { return sum + p.y; }) / clusters[i].size();
+            cv::Point centroid_cluster_ = {0, 0};
+            centroid_cluster_.x = std::accumulate(clusters[i].begin(), clusters[i].end(), 0, [](int sum, const cv::Point &p)
+                                                  { return sum + p.x; }) /
+                                  clusters[i].size();
+            centroid_cluster_.y = std::accumulate(clusters[i].begin(), clusters[i].end(), 0, [](int sum, const cv::Point &p)
+                                                  { return sum + p.y; }) /
+                                  clusters[i].size();
 
             cv::Scalar color = colors[i % 6];
             float cluster_angle = 0.0f;
-            for (int j = 0; j < clusters[i].size(); j++) {
+            for (int j = 0; j < clusters[i].size(); j++)
+            {
                 // cv::circle(bev_color_image, clusters[i][j], 8, color, 3);
                 cv::line(bev_color_image, clusters[i][j], clusters[i][(j + 1) % clusters[i].size()], color, 5);
             }
 
             // check cluster angle between points by calculating mode (often show angle)
             std::vector<float> angles;
-            for (size_t j = 0; j < clusters[i].size() - 1; j++) {
+            for (size_t j = 0; j < clusters[i].size() - 1; j++)
+            {
                 float angle = atan2(clusters[i][j + 1].y - clusters[i][j].y,
-                                  clusters[i][j + 1].x - clusters[i][j].x)
-                    * 180.0 / CV_PI;
+                                    clusters[i][j + 1].x - clusters[i][j].x) *
+                              180.0 / CV_PI;
                 angles.push_back(angle);
             }
 
             // Filter noise by removing outliers (angles far from median)
-            if (!angles.empty()) {
+            if (!angles.empty())
+            {
                 std::vector<float> sorted_angles = angles;
                 std::sort(sorted_angles.begin(), sorted_angles.end());
 
@@ -1197,40 +1216,40 @@ private:
                 float threshold = 30.0f; // degrees
 
                 std::vector<float> filtered_angles;
-                for (float angle : angles) {
-                    if (std::abs(angle - median) <= threshold) {
+                for (float angle : angles)
+                    if (std::abs(angle - median) <= threshold)
                         filtered_angles.push_back(angle);
-                    }
-                }
 
                 // Calculate average angle from filtered data
-                if (!filtered_angles.empty()) {
+                if (!filtered_angles.empty())
                     cluster_angle = std::accumulate(filtered_angles.begin(), filtered_angles.end(), 0.0f) / filtered_angles.size();
-                } else {
+                else
                     cluster_angle = median; // Use median if all filtered out
-                }
-            } else {
+            }
+            else
+            {
                 cluster_angle = 0.0f;
             }
 
             cluster_angle *= -1;
 
-            while (cluster_angle < -180.0f) {
+            while (cluster_angle < -180.0f)
                 cluster_angle += 360.0f;
-            }
-            while (cluster_angle > 180.0f) {
+            while (cluster_angle > 180.0f)
                 cluster_angle -= 360.0f;
-            }
 
             cv::putText(bev_color_image, std::to_string(static_cast<int>(cluster_angle)) + " deg",
-                cv::Point(clusters[i][0].x + 10, clusters[i][0].y - 30), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(255, 0, 0), 2);
+                        cv::Point(clusters[i][0].x + 10, clusters[i][0].y - 30), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(255, 0, 0), 2);
 
-            if (abs(cluster_angle - 90) < 30 || abs(cluster_angle + 90) < 30) {
+            if (abs(cluster_angle - 90) < 30 || abs(cluster_angle + 90) < 30)
+            {
                 vertical_clusters.push_back(clusters[i]);
                 centroid_cluster_vertical.push_back(centroid_cluster_);
                 vertical_angles.push_back(cluster_angle);
                 // logger.info("Cluster %zu is vertical with angle: %.2f | %.2f", i, cluster_angle, abs(cluster_angle - 90));
-            } else if (abs(cluster_angle) < 45 || abs(cluster_angle - 180) < 45 || abs(cluster_angle + 180) < 45) {
+            }
+            else if (abs(cluster_angle) < 45 || abs(cluster_angle - 180) < 45 || abs(cluster_angle + 180) < 45)
+            {
                 horizontal_clusters.push_back(clusters[i]);
                 centroid_cluster_horizontal.push_back(centroid_cluster_);
                 horizontal_angles.push_back(cluster_angle + 90);
@@ -1239,34 +1258,34 @@ private:
         }
 
         std::vector<float> adjusted_angles;
-        for (float angle : vertical_angles) {
+        for (float angle : vertical_angles)
+        {
             // logger.info("v before adjust: %.2f deg", angle);
-            if (angle < 0) {
+            if (angle < 0)
                 angle += 180.0f; // Adjust negative angles to positive
-            }
+
             // logger.info("v after adjust: %.2f deg", angle);
             adjusted_angles.push_back(angle);
         }
 
-        for (float angle : horizontal_angles) {
+        for (float angle : horizontal_angles)
+        {
             // logger.info("h before adjust: %.2f deg", angle);
-            while (angle <= 45) {
+            while (angle <= 45)
                 angle += 90.0f;
-            }
 
-            while (angle >= 135) {
+            while (angle >= 135)
                 angle -= 90.0f;
-            }
             // logger.info("h after adjust: %.2f deg", angle);
 
             adjusted_angles.push_back(angle);
         }
 
-        if (adjusted_angles.size() > 0) {
+        if (adjusted_angles.size() > 0)
+        {
             float average_vertical_angle = 0;
-            for (int i = 0; i < adjusted_angles.size(); i++) {
+            for (int i = 0; i < adjusted_angles.size(); i++)
                 average_vertical_angle += adjusted_angles[i];
-            }
             average_vertical_angle /= adjusted_angles.size();
             offset_angle_zebracross = average_vertical_angle;
             is_offset_angle_zebracross = 1;
@@ -1276,12 +1295,10 @@ private:
         float dist_to_near_horizontal_cluster = std::numeric_limits<float>::max();
         float dist_to_near_vertical_cluster = std::numeric_limits<float>::max();
 
-        if (!centroid_cluster_horizontal.empty()) {
+        if (!centroid_cluster_horizontal.empty())
             dist_to_near_horizontal_cluster = cv::norm(centroid_cluster_horizontal[0] - robot_position);
-        }
-        if (!centroid_cluster_vertical.empty()) {
+        if (!centroid_cluster_vertical.empty())
             dist_to_near_vertical_cluster = cv::norm(centroid_cluster_vertical[0] - robot_position);
-        }
 
         dist_to_near_cluster = std::min(dist_to_near_horizontal_cluster, dist_to_near_vertical_cluster);
 
@@ -1291,43 +1308,50 @@ private:
         uint8_t belok_kanan = 0;
         uint8_t belok_kiri = 0;
 
-        if (sign_id_ == RIGHT) {
+        if (sign_id_ == RIGHT)
             belok_kanan = 1;
-        } else if (sign_id_ == LEFT) {
+        else if (sign_id_ == LEFT)
             belok_kiri = 1;
-        }
 
         // check distance closest horizontal cluster to robot then log it
         static uint8_t counter = 0;
-        if (!horizontal_clusters.empty() && clusters.size() > 1) {
+        if (!horizontal_clusters.empty() && clusters.size() > 1)
+        {
             static uint8_t prev_is_close_horizontal = 0;
             float closest_distance = std::numeric_limits<float>::max();
-            cv::Point robot_gate_upper = { robot_position.x, robot_position.y - 0.4 * meter_to_pixel_ };
-            cv::Point robot_gate_bottom = { robot_position.x, robot_position.y - 0.2 * meter_to_pixel_ };
+            cv::Point robot_gate_upper = {robot_position.x, robot_position.y - 0.4 * meter_to_pixel_};
+            cv::Point robot_gate_bottom = {robot_position.x, robot_position.y - 0.2 * meter_to_pixel_};
 
             cv::line(bev_color_image, robot_gate_upper, robot_gate_bottom, cv::Scalar(0, 255, 0), 2);
 
-            if (centroid_cluster_horizontal[0].y > robot_gate_upper.y) {
-                if (centroid_cluster_horizontal[0].y > robot_gate_bottom.y) {
+            if (centroid_cluster_horizontal[0].y > robot_gate_upper.y)
+            {
+                if (centroid_cluster_horizontal[0].y > robot_gate_bottom.y)
+                {
                     is_close_horizontal = 1;
                     berhenti = 1;
                 }
             }
-        } else {
+        }
+        else
+        {
             // logger.info("Horizontal Clusters is empty");
         }
 
-        cv::Point titik_putih = { -1, -1 };
-        cv::Point titik_hitam = { -1, -1 };
+        cv::Point titik_putih = {-1, -1};
+        cv::Point titik_hitam = {-1, -1};
         float dist_near_zebracross_vertical_kiri = 99999;
         float dist_near_zebracross_vertical_kanan = 99999;
 
-        if (vertical_clusters.size()) {
-            for (size_t i = 0; i < vertical_clusters.size(); i++) {
+        if (vertical_clusters.size())
+        {
+            for (size_t i = 0; i < vertical_clusters.size(); i++)
+            {
                 float angle = -computeAngle(centroid_cluster_vertical[i], robot_position);
                 cv::Point center_circle;
 
-                if (angle > 0) {
+                if (angle > 0)
+                {
                     center_circle.x = centroid_cluster_vertical[i].x + length_titik_hitam_ * sin(vertical_angles[i] * M_PI / 180);
                     center_circle.y = centroid_cluster_vertical[i].y + length_titik_hitam_ * cos(vertical_angles[i] * M_PI / 180);
 
@@ -1335,7 +1359,9 @@ private:
 
                     // cv::circle(bev_color_image, center_circle, 8, cv::Scalar(0, 0, 0), -1);
                     titik_hitam = center_circle;
-                } else {
+                }
+                else
+                {
                     center_circle.x = centroid_cluster_vertical[i].x - length_titik_putih_ * sin(vertical_angles[i] * M_PI / 180);
                     center_circle.y = centroid_cluster_vertical[i].y - length_titik_putih_ * cos(vertical_angles[i] * M_PI / 180);
 
@@ -1345,9 +1371,8 @@ private:
                 }
             }
         }
-        if (titik_putih.x == -1 && titik_putih.y == -1) {
+        if (titik_putih.x == -1 && titik_putih.y == -1)
             titik_putih = titik_hitam;
-        }
 
         cv::circle(bev_color_image, titik_putih, 8, cv::Scalar(255, 255, 255), -1);
 
@@ -1371,8 +1396,8 @@ private:
         points[0][3] = cv::Point(valid_center_right_, valid_down_);
         points[0][4] = cv::Point(bev_width, valid_up_);
         points[0][5] = cv::Point(bev_width, cropping_distance_);
-        const cv::Point* ppt[1] = { points[0] };
-        int npt[] = { 6 };
+        const cv::Point *ppt[1] = {points[0]};
+        int npt[] = {6};
         cv::fillPoly(valid_region_mask, ppt, npt, 1, cv::Scalar(255));
 
         // make line valid region from 0,0 -> 0,330 -> 155,590 -> 245,590 -> 400,330 -> 400,0 with thickness 5
@@ -1390,22 +1415,28 @@ private:
         cv::bitwise_or(bev_binary, line_valid_region, bev_binary);
 
         // Function to find closest black pixel within radius
-        auto findClosestBlackPixel = [](const cv::Mat& image, cv::Point center, int radius) -> cv::Point {
+        auto findClosestBlackPixel = [](const cv::Mat &image, cv::Point center, int radius) -> cv::Point
+        {
             cv::Point closest = center;
             double minDist = std::numeric_limits<double>::max();
             bool found = false;
 
-            for (int dy = -radius; dy <= radius; dy++) {
-                for (int dx = -radius; dx <= radius; dx++) {
+            for (int dy = -radius; dy <= radius; dy++)
+            {
+                for (int dx = -radius; dx <= radius; dx++)
+                {
                     cv::Point candidate(center.x + dx, center.y + dy);
 
                     // Check if point is within image bounds and within circle
-                    if (candidate.x >= 0 && candidate.x < image.cols && candidate.y >= 0 && candidate.y < image.rows && (dx * dx + dy * dy) <= radius * radius) {
+                    if (candidate.x >= 0 && candidate.x < image.cols && candidate.y >= 0 && candidate.y < image.rows && (dx * dx + dy * dy) <= radius * radius)
+                    {
 
                         // Check if pixel is black (0)
-                        if (image.at<uchar>(candidate.y, candidate.x) == 0) {
+                        if (image.at<uchar>(candidate.y, candidate.x) == 0)
+                        {
                             double dist = sqrt(dx * dx + dy * dy);
-                            if (dist < minDist) {
+                            if (dist < minDist)
+                            {
                                 minDist = dist;
                                 closest = candidate;
                                 found = true;
@@ -1422,8 +1453,10 @@ private:
         int search_radius = 50;
 
         // control maju kanan kiri. penutupan jalan
-        if (final_sign_id == FORWARD) {
-            for (size_t i = 0; i < vertical_clusters.size(); i++) {
+        if (final_sign_id == FORWARD)
+        {
+            for (size_t i = 0; i < vertical_clusters.size(); i++)
+            {
                 cv::Point start_point = vertical_clusters[i][0];
                 cv::Point end_point;
                 end_point.x = start_point.x + 500 * cos((vertical_angles[i]) * CV_PI / 180.0);
@@ -1441,18 +1474,20 @@ private:
         cv::Mat bev_flood_fill_kanan = bev_binary.clone();
         cv::Mat bev_flood_fill_kiri = bev_binary.clone();
 
-        if (start_point_kanan.x >= 0 && start_point_kanan.x < bev_flood_fill_kanan.cols && start_point_kanan.y >= 0 && start_point_kanan.y < bev_flood_fill_kanan.rows) {
-            if (bev_flood_fill_kanan.at<uchar>(start_point_kanan.y, start_point_kanan.x) == 255) {
+        if (start_point_kanan.x >= 0 && start_point_kanan.x < bev_flood_fill_kanan.cols && start_point_kanan.y >= 0 && start_point_kanan.y < bev_flood_fill_kanan.rows)
+        {
+            if (bev_flood_fill_kanan.at<uchar>(start_point_kanan.y, start_point_kanan.x) == 255)
+            {
                 cv::Point new_start = findClosestBlackPixel(bev_flood_fill_kanan, start_point_kanan, search_radius);
-                if (new_start.x != -1 && new_start.y != -1) {
+                if (new_start.x != -1 && new_start.y != -1)
                     start_point_kanan = new_start;
-                }
             }
 
-            if (bev_flood_fill_kanan.at<uchar>(start_point_kanan.y, start_point_kanan.x) == 0) {
+            if (bev_flood_fill_kanan.at<uchar>(start_point_kanan.y, start_point_kanan.x) == 0)
+            {
                 cv::Mat mask_kanan = cv::Mat::zeros(bev_flood_fill_kanan.rows + 2, bev_flood_fill_kanan.cols + 2, CV_8UC1);
                 cv::floodFill(bev_flood_fill_kanan, mask_kanan, start_point_kanan,
-                    cv::Scalar(255), nullptr, cv::Scalar(0), cv::Scalar(0), 4);
+                              cv::Scalar(255), nullptr, cv::Scalar(0), cv::Scalar(0), 4);
                 // Extract just the mask (remove the 1-pixel border)
                 cv::Mat flood_mask_kanan = mask_kanan(cv::Rect(1, 1, bev_flood_fill_kanan.cols, bev_flood_fill_kanan.rows));
                 bev_flood_fill_kanan = flood_mask_kanan * 255;
@@ -1460,18 +1495,20 @@ private:
             }
         }
 
-        if (start_point_kiri.x >= 0 && start_point_kiri.x < bev_flood_fill_kiri.cols && start_point_kiri.y >= 0 && start_point_kiri.y < bev_flood_fill_kiri.rows) {
-            if (bev_flood_fill_kiri.at<uchar>(start_point_kiri.y, start_point_kiri.x) == 255) {
+        if (start_point_kiri.x >= 0 && start_point_kiri.x < bev_flood_fill_kiri.cols && start_point_kiri.y >= 0 && start_point_kiri.y < bev_flood_fill_kiri.rows)
+        {
+            if (bev_flood_fill_kiri.at<uchar>(start_point_kiri.y, start_point_kiri.x) == 255)
+            {
                 cv::Point new_start = findClosestBlackPixel(bev_flood_fill_kiri, start_point_kiri, search_radius);
-                if (new_start.x != -1 && new_start.y != -1) {
+                if (new_start.x != -1 && new_start.y != -1)
                     start_point_kiri = new_start;
-                }
             }
 
-            if (bev_flood_fill_kiri.at<uchar>(start_point_kiri.y, start_point_kiri.x) == 0) {
+            if (bev_flood_fill_kiri.at<uchar>(start_point_kiri.y, start_point_kiri.x) == 0)
+            {
                 cv::Mat mask_kiri = cv::Mat::zeros(bev_flood_fill_kiri.rows + 2, bev_flood_fill_kiri.cols + 2, CV_8UC1);
                 cv::floodFill(bev_flood_fill_kiri, mask_kiri, start_point_kiri,
-                    cv::Scalar(255), nullptr, cv::Scalar(0), cv::Scalar(0), 4);
+                              cv::Scalar(255), nullptr, cv::Scalar(0), cv::Scalar(0), 4);
                 // Extract just the mask (remove the 1-pixel border)
                 cv::Mat flood_mask_kiri = mask_kiri(cv::Rect(1, 1, bev_flood_fill_kiri.cols, bev_flood_fill_kiri.rows));
                 bev_flood_fill_kiri = flood_mask_kiri * 255;
@@ -1500,27 +1537,25 @@ private:
 
         std::vector<std::vector<cv::Point>> dashed_contours;
         cv::findContours(bev_binary_dashed, dashed_contours, cv::RETR_EXTERNAL, cv::CHAIN_APPROX_SIMPLE);
-        for (auto it = dashed_contours.begin(); it != dashed_contours.end();) {
-            if (cv::contourArea(*it) < 20 || cv::contourArea(*it) > 200) {
+        for (auto it = dashed_contours.begin(); it != dashed_contours.end();)
+            if (cv::contourArea(*it) < 20 || cv::contourArea(*it) > 200)
                 it = dashed_contours.erase(it); // Remove small contours
-            } else {
+            else
                 ++it;
-            }
-        }
 
         bev_binary_dashed = cv::Mat::zeros(bev_binary_dashed.size(), CV_8UC1);
-        for (size_t i = 0; i < dashed_contours.size(); i++) {
+        for (size_t i = 0; i < dashed_contours.size(); i++)
             cv::drawContours(bev_binary_dashed, dashed_contours, static_cast<int>(i), cv::Scalar(255), -1);
-        }
 
-        for (size_t i = 0; i < dashed_contours.size(); i++) {
+        for (size_t i = 0; i < dashed_contours.size(); i++)
+        {
             cv::RotatedRect rotated_rect = cv::minAreaRect(dashed_contours[i]);
-            if (rotated_rect.size.width < 200 && rotated_rect.size.height < 200) {
+            if (rotated_rect.size.width < 200 && rotated_rect.size.height < 200)
+            {
                 cv::Point2f vertices[4];
                 rotated_rect.points(vertices);
-                for (int j = 0; j < 4; j++) {
+                for (int j = 0; j < 4; j++)
                     cv::line(bev_color_image, vertices[j], vertices[(j + 1) % 4], cv::Scalar(255), 2);
-                }
             }
         }
         //* ==================================================
@@ -1547,18 +1582,20 @@ private:
         cv::Mat dashed_line_filtered_edge_right = cv::Mat::zeros(bev_color_image.size(), CV_8UC1);
         cv::Mat edge_line_filtered_right = cv::Mat::zeros(bev_color_image.size(), CV_8UC1);
 
-        if (!dashed_contours.empty()) { // ← PENTING: Check kosong!
+        if (!dashed_contours.empty())
+        { // ← PENTING: Check kosong!
 
-            for (const auto& contour : dashed_contours) {
+            for (const auto &contour : dashed_contours)
                 average_area += cv::contourArea(contour);
-            }
             average_area /= static_cast<float>(dashed_contours.size());
 
             // filter contours based on area
-            for (size_t i = 0; i < dashed_contours.size(); i++) {
+            for (size_t i = 0; i < dashed_contours.size(); i++)
+            {
                 float area = cv::contourArea(dashed_contours[i]);
                 // logger.info("Contour area: %.2f || %d", area, i);
-                if (area < 65 || area > 180) {
+                if (area < 65 || area > 180)
+                {
                     dashed_contours.erase(dashed_contours.begin() + i);
                     i--; // Adjust index after removal
                 }
@@ -1566,18 +1603,21 @@ private:
 
             // sort contours by y position
             std::sort(dashed_contours.begin(), dashed_contours.end(),
-                [](const std::vector<cv::Point>& a, const std::vector<cv::Point>& b) {
-                    return cv::boundingRect(a).y > cv::boundingRect(b).y;
-                });
+                      [](const std::vector<cv::Point> &a, const std::vector<cv::Point> &b)
+                      {
+                          return cv::boundingRect(a).y > cv::boundingRect(b).y;
+                      });
 
             float mean_angle = 0.0f;
-            for (size_t i = 0; i < dashed_contours.size(); i++) {
+            for (size_t i = 0; i < dashed_contours.size(); i++)
+            {
                 // check angle for each contour
                 cv::Point centroid = getCentroid(dashed_contours[i]);
 
                 float angle = computeAngle(centroid, robot_position);
 
-                if (angle > 10) {
+                if (angle > 10)
+                {
                     // remove contour if angle is too high
                     dashed_contours.erase(dashed_contours.begin() + i);
                     i--; // Adjust index after removal
@@ -1585,10 +1625,12 @@ private:
             }
 
             // check the distance between contours
-            for (size_t i = 0; i < dashed_contours.size(); i++) {
+            for (size_t i = 0; i < dashed_contours.size(); i++)
+            {
 
                 // Check if the contour is too close to the previous one
-                if (i > 0) {
+                if (i > 0)
+                {
                     cv::Rect prev_bounding_rect = cv::boundingRect(dashed_contours[i - 1]);
                     float dist = sqrt(pow(cv::boundingRect(dashed_contours[i]).x - prev_bounding_rect.x, 2) + pow(cv::boundingRect(dashed_contours[i]).y - prev_bounding_rect.y, 2));
                     // logger.info("Distance between contours %d and %d: %.2f", i - 1, i, dist);
@@ -1601,35 +1643,39 @@ private:
             }
 
             // put text id
-            for (size_t i = 0; i < dashed_contours.size(); i++) {
+            for (size_t i = 0; i < dashed_contours.size(); i++)
+            {
                 cv::Rect bounding_rect = cv::boundingRect(dashed_contours[i]);
                 cv::putText(bev_color_image, std::to_string(i), cv::Point(bounding_rect.x, bounding_rect.y - 10),
-                    cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(0, 255, 0), 1);
+                            cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(0, 255, 0), 1);
             }
 
-            for (const auto& contour : dashed_contours) {
-                cv::drawContours(dashed_line_cleaned, std::vector<std::vector<cv::Point>> { contour }, -1, cv::Scalar(255), cv::FILLED);
-            }
+            for (const auto &contour : dashed_contours)
+                cv::drawContours(dashed_line_cleaned, std::vector<std::vector<cv::Point>>{contour}, -1, cv::Scalar(255), cv::FILLED);
 
             std::vector<std::pair<cv::Point, float>> saved_dashed_centroid;
             // draw contours on the cleaned binary image
 
             // draw line from centroid contour to next centroid contour
-            if (dashed_contours.size() >= 1) { // ← PENTING: Check minimal 2 contours!
+            if (dashed_contours.size() >= 1)
+            {                                    // ← PENTING: Check minimal 2 contours!
                 cv::Point prev_centroid(-1, -1); // Track previous centroid for angle calculation
 
-                for (size_t i = 0; i < dashed_contours.size() - 1; i++) {
+                for (size_t i = 0; i < dashed_contours.size() - 1; i++)
+                {
 
                     cv::Point centroid_a = getCentroid(dashed_contours[i]);
                     cv::Point centroid_b = getCentroid(dashed_contours[i + 1]);
 
                     // Check if points are valid
-                    if (centroid_a.x > 0 && centroid_a.y > 0 && centroid_b.x > 0 && centroid_b.y > 0) {
+                    if (centroid_a.x > 0 && centroid_a.y > 0 && centroid_b.x > 0 && centroid_b.y > 0)
+                    {
 
                         // Check angle with previous line segment if exists
                         bool skip_line = false;
 
-                        if (prev_centroid != cv::Point(-1, -1)) {
+                        if (prev_centroid != cv::Point(-1, -1))
+                        {
                             // Hitung sudut antara dua segmen: prev → A dan A → B
                             cv::Point2f vec1 = centroid_a - prev_centroid;
                             cv::Point2f vec2 = centroid_b - centroid_a;
@@ -1637,31 +1683,30 @@ private:
                             float len1 = cv::norm(vec1);
                             float len2 = cv::norm(vec2);
 
-                            if (len1 > 0 && len2 > 0) {
+                            if (len1 > 0 && len2 > 0)
+                            {
                                 float cos_theta = vec1.dot(vec2) / (len1 * len2);
                                 cos_theta = std::max(-1.0f, std::min(cos_theta, 1.0f)); // Hindari NaN
                                 float angle_between = std::acos(cos_theta) * 180.0f / CV_PI;
 
-                                if (angle_between > 180.0f) {
+                                if (angle_between > 180.0f)
                                     angle_between -= 360.0f; // Normalisasi sudut
-                                } else if (angle_between < -180.0f) {
+                                else if (angle_between < -180.0f)
                                     angle_between += 360.0f; // Normalisasi sudut
-                                }
 
-                                if (fabs(angle_between) > 45.0f) {
+                                if (fabs(angle_between) > 45.0f)
                                     skip_line = true;
-                                }
                             }
                         }
 
                         // Jika tidak di-skip, simpan centroid + arah
-                        if (!skip_line) {
+                        if (!skip_line)
+                        {
                             float angle_deg = computeAngle(centroid_a, centroid_b);
 
                             saved_dashed_centroid.emplace_back(centroid_a, angle_deg);
-                            if (i == dashed_contours.size() - 2) {
+                            if (i == dashed_contours.size() - 2)
                                 saved_dashed_centroid.emplace_back(centroid_b, angle_deg);
-                            }
 
                             prev_centroid = centroid_a; // Update previous centroid
                         }
@@ -1670,7 +1715,8 @@ private:
             }
 
             // push to first element
-            if (saved_dashed_centroid.size() > 0) {
+            if (saved_dashed_centroid.size() > 0)
+            {
                 float angle_robot_to_first = computeAngle(robot_position, saved_dashed_centroid[0].first);
                 saved_dashed_centroid.insert(saved_dashed_centroid.begin(), std::make_pair(robot_position, angle_robot_to_first));
             }
@@ -1683,7 +1729,8 @@ private:
             cv::Point prev_second_point(robot_position.x, robot_position.y);
 
             total_angle = 0.0f;
-            for (int i = 0; i < saved_dashed_centroid.size(); i++) {
+            for (int i = 0; i < saved_dashed_centroid.size(); i++)
+            {
 
                 cv::Point second_point;
                 cv::Point first_point;
@@ -1695,11 +1742,14 @@ private:
                 //? CALCULATE ANGLE BETWEEN TWO POINTS
                 //? ===================================================
 
-                if (i == 0) {
+                if (i == 0)
+                {
                     // Use robot position for the first point
                     second_point = cv::Point(robot_position.x, robot_position.y);
                     first_point = cv::Point(robot_position.x, robot_position.y);
-                } else {
+                }
+                else
+                {
                     // second_point = saved_dashed_centroid[i].first;
                     // first_point = saved_dashed_centroid[i - 1].first;
                     second_point.x = static_cast<int>(saved_dashed_centroid[i].first.x + (final_used_line_length - 5) * std::cos(saved_dashed_centroid[i].second * M_PI / 180.0f));
@@ -1709,7 +1759,8 @@ private:
                     first_point.y = static_cast<int>(saved_dashed_centroid[i].first.y - final_used_line_length * std::sin(saved_dashed_centroid[i].second * M_PI / 180.0f));
                 }
 
-                if (i == saved_dashed_centroid.size() - 1) {
+                if (i == saved_dashed_centroid.size() - 1)
+                {
                     cv::Point last_point(0, 0);
 
                     last_point.x = static_cast<int>(saved_dashed_centroid[i].first.x + (final_used_line_length + 30) * std::cos((saved_dashed_centroid[i].second + 90) * M_PI / 180.0f));
@@ -1730,11 +1781,13 @@ private:
 
                 cv::line(bev_color_image, first_point, second_point, cv::Scalar(0, 255, 0), 2);
 
-                if (i < saved_dashed_centroid.size() - 1) {
+                if (i < saved_dashed_centroid.size() - 1)
+                {
                     cv::line(bev_color_image, saved_dashed_centroid[i].first, saved_dashed_centroid[i + 1].first, cv::Scalar(0, 0, 255), 2);
                     cv::line(dashed_line_filtered, saved_dashed_centroid[i].first, saved_dashed_centroid[i + 1].first, cv::Scalar(255), 5);
 
-                    if (i != 0) {
+                    if (i != 0)
+                    {
                         total_angle += fabs(saved_dashed_centroid[i].second - saved_dashed_centroid[i + 1].second);
                         // logger.info("Angle between points: %.2f", (saved_dashed_centroid[i].second - saved_dashed_centroid[i + 1].second));
                     }
@@ -1764,28 +1817,33 @@ private:
         cv::circle(valid_ungu, robot_position, bev_height - cropping_distance_ - 20, cv::Scalar(0), -1);
 
         std::vector<cv::Point> laser_scan_points_ungu;
-        for (float angle = 0; angle < 90; angle += 1.5) {
-            for (int distance = 1; distance < bev_color_image.cols; distance += 1) {
+        for (float angle = 0; angle < 90; angle += 1.5)
+        {
+            for (int distance = 1; distance < bev_color_image.cols; distance += 1)
+            {
                 int x = static_cast<int>(robot_position.x + distance * cos(angle * CV_PI / 180.0));
                 int y = static_cast<int>(robot_position.y - distance * sin(angle * CV_PI / 180.0));
                 int x_last = static_cast<int>(robot_position.x + (distance - 1) * cos(angle * CV_PI / 180.0));
                 int y_last = static_cast<int>(robot_position.y - (distance - 1) * sin(angle * CV_PI / 180.0));
 
-                if (x > 0 && x < bev_color_image.cols && y > 0 && y < bev_color_image.rows) {
+                if (x > 0 && x < bev_color_image.cols && y > 0 && y < bev_color_image.rows)
+                {
                     int pixel_value_dot = bev_cleaned_binary.at<uchar>(y, x) - bev_cleaned_binary.at<uchar>(y_last, x_last);
-                    if (pixel_value_dot < 0 && valid_ungu.at<uchar>(y, x) == 0) {
+                    if (pixel_value_dot < 0 && valid_ungu.at<uchar>(y, x) == 0)
+                    {
                         laser_scan_points_ungu.push_back(cv::Point(x, y));
                         // cv::circle(bev_color_image, cv::Point(x, y), 10, cv::Scalar(255, 0, 255), -1);
-                    } else if (pixel_value_dot < 0 && valid_ungu.at<uchar>(y, x) == 255) {
+                    }
+                    else if (pixel_value_dot < 0 && valid_ungu.at<uchar>(y, x) == 255)
+                    {
                         break;
                     }
                 }
             }
         }
 
-        if (laser_scan_points_ungu.size() < 2) {
+        if (laser_scan_points_ungu.size() < 2)
             logger.error("Laser Scan is Empty");
-        }
 
         // for (int i = bev_binary.rows - 1; i > 0; i--) {
         //     for (int j = bev_binary.cols - 2; j > 0; j--) {
@@ -1812,14 +1870,21 @@ private:
 
         return_edge = edge_reference_detection(bev_cleaned_binary, bev_color_image, left_flood_fill_points, right_flood_fill_points);
 
-        if (return_edge == 1) {
+        if (return_edge == 1)
+        {
             left_valid = 1;
-        } else if (return_edge == 2) {
+        }
+        else if (return_edge == 2)
+        {
             right_valid = 1;
-        } else if (return_edge == 3) {
+        }
+        else if (return_edge == 3)
+        {
             left_valid = 1;
             right_valid = 1;
-        } else {
+        }
+        else
+        {
             left_valid = 0;
             right_valid = 0;
         }
@@ -1836,19 +1901,22 @@ private:
 
         // logger.info("last angle: %.2f %.2f", last_angle_left_flood_fill_points, last_angle_right_flood_fill_points);
 
-        if (!left_flood_fill_points.empty()) {
+        if (!left_flood_fill_points.empty())
+        {
             last_angle_left_flood_fill_points = computeAngle(left_flood_fill_points[left_flood_fill_points.size() - 1], robot_position_);
             float prev_deg = 0;
             float total_angle = 0;
             float line_length_ref_baru_ = line_length_max_;
             cv::Point prev_second_point = robot_position;
 
-            for (size_t i = 0; i < left_flood_fill_points.size() - 1; i++) {
+            for (size_t i = 0; i < left_flood_fill_points.size() - 1; i++)
+            {
                 cv::circle(bev_color_image, left_flood_fill_points[i], 2, cv::Scalar(255, 0, 0), -1);
 
                 float angle_deg = computeAngle(left_flood_fill_points[i], left_flood_fill_points[i + 1]);
 
-                if (i != 0) {
+                if (i != 0)
+                {
                     total_angle += fabs(prev_deg - angle_deg);
                     // logger.info("angle between: %.2f", (prev_deg - angle_deg));
                 }
@@ -1871,18 +1939,23 @@ private:
         static int16_t cntr_jalan_lurus = 0;
         static int8_t status_jalan_berkelok = 0;
 
-        if (jalan_berkelok_) {
+        if (jalan_berkelok_)
+        {
             status_jalan_berkelok = 1;
             cntr_jalan_lurus = 0;
-        } else {
+        }
+        else
+        {
             cntr_jalan_lurus++;
-            if (cntr_jalan_lurus > cntr_jalan_lurus_) {
+            if (cntr_jalan_lurus > cntr_jalan_lurus_)
+            {
                 status_jalan_berkelok = 0;
                 cntr_jalan_lurus = cntr_jalan_lurus_;
             }
         }
 
-        if (!right_flood_fill_points.empty()) {
+        if (!right_flood_fill_points.empty())
+        {
             last_angle_right_flood_fill_points = computeAngle(right_flood_fill_points[right_flood_fill_points.size() - 1], robot_position_);
             float prev_deg = 0;
             float total_angle = 0;
@@ -1890,13 +1963,13 @@ private:
             float prev_angle_to_robot = 0.0f;
             cv::Point prev_second_point = robot_position;
 
-            if (status_jalan_berkelok) {
+            if (status_jalan_berkelok)
                 line_length_ref_baru_ = line_length_max_;
-            }
 
             size_t total_points = fminf(right_flood_fill_points.size() - 1, 8);
 
-            for (size_t i = 0; i < total_points; i++) {
+            for (size_t i = 0; i < total_points; i++)
+            {
                 cv::circle(bev_color_image, right_flood_fill_points[i], 2, cv::Scalar(0, 0, 255), -1);
 
                 float angle_deg = computeAngle(right_flood_fill_points[i + 1], right_flood_fill_points[i]);
@@ -1909,10 +1982,14 @@ private:
                 float angle_to_robot = computeAngle(right_flood_fill_points[i], robot_position);
 
                 // logger.info("Angle to robot: %.2f || %zu", angle_to_robot, i);
-                if (i != 0) {
-                    if (fabs(prev_deg - angle_deg) > 15.0f) {
+                if (i != 0)
+                {
+                    if (fabs(prev_deg - angle_deg) > 15.0f)
+                    {
                         ada_patahan = 1;
-                    } else {
+                    }
+                    else
+                    {
                         // logger.info("Angle to robot: %.2f || %zu", fabs(prev_deg - angle_deg), i);
                         total_angle += fabs(prev_deg - angle_deg);
                     }
@@ -1920,11 +1997,10 @@ private:
                     // logger.info("angle between: %.2f", (prev_deg - angle_deg));
                 } // //  // //
 
-                if (i == 0) {
+                if (i == 0)
                     most_bigger_angle_right = fabs(angle_to_robot);
-                } else if (fabs(angle_to_robot) > most_bigger_angle_right) {
+                else if (fabs(angle_to_robot) > most_bigger_angle_right)
                     most_bigger_angle_right = fabs(angle_to_robot);
-                }
 
                 cv::line(bev_color_image, second_point, prev_second_point, cv::Scalar(0, 255, 255), 2);
                 cv::line(dashed_line_filtered_edge_right, second_point, prev_second_point, cv::Scalar(255), 5);
@@ -1936,7 +2012,8 @@ private:
             total_angle_edge = total_angle;
         }
 
-        if (last_angle_left_flood_fill_points < -50 && last_angle_right_flood_fill_points > 50) {
+        if (last_angle_left_flood_fill_points < -50 && last_angle_right_flood_fill_points > 50)
+        {
             ada_pertigaan = 1;
 
             jarak_ke_pertigaan = robot_position_.y - right_flood_fill_points[right_flood_fill_points.size() - 1].y;
@@ -1948,9 +2025,8 @@ private:
 
         mask_jalan_bocor_ = (fabs(prev_most_bigger_angle_right - most_bigger_angle_right) > 20.0f);
 
-        if (mask_jalan_bocor_) {
+        if (mask_jalan_bocor_)
             deteksi_jalan_bocor += 1;
-        }
 
         // logger.info("Most bigger angle right: %.2f || %.2f -> %d | %d", most_bigger_angle_right, fabs(prev_most_bigger_angle_right - most_bigger_angle_right), mask_jalan_bocor_, deteksi_jalan_bocor);
 
@@ -1977,36 +2053,40 @@ private:
 
         // First pass: collect all row sums
         std::vector<int> row_sums;
-        for (int y = 0; y < bev_cleaned_binary.rows; ++y) {
+        for (int y = 0; y < bev_cleaned_binary.rows; ++y)
+        {
             int total = 0;
-            for (int x = 0; x < bev_cleaned_binary.cols; ++x) {
+            for (int x = 0; x < bev_cleaned_binary.cols; ++x)
                 total += bev_cleaned_binary.at<uchar>(y, x);
-            }
-            if (total > 0) { // Only consider rows with white pixels
+            if (total > 0)
+            { // Only consider rows with white pixels
                 row_sums.push_back(total / 255);
             }
         }
 
         // Second pass: find actual min and max
-        if (!row_sums.empty()) {
+        if (!row_sums.empty())
+        {
             max_x_distance = *std::max_element(row_sums.begin(), row_sums.end());
             min_x_distance = *std::min_element(row_sums.begin(), row_sums.end());
         }
 
         cv::putText(bev_color_image, "Max X Distance: " + std::to_string(max_x_distance),
-            cv::Point(10, 70), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(0, 255, 0), 1);
+                    cv::Point(10, 70), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(0, 255, 0), 1);
         cv::putText(bev_color_image, "Min X Distance: " + std::to_string(min_x_distance),
-            cv::Point(10, 90), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(0, 0, 255), 1);
+                    cv::Point(10, 90), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(0, 0, 255), 1);
 
         int error = abs(max_x_distance - min_x_distance);
 
         std::vector<cv::Point> vertical_points = sliding_windows(bev_cleaned_binary, bev_cleaned_binary.cols, 10,
-            10, bev_color_image);
+                                                                 10, bev_color_image);
 
         std::vector<float> angles_vertical;
 
-        if (vertical_points.size() > 2) {
-            for (size_t i = 0; i < vertical_points.size() - 1; i++) {
+        if (vertical_points.size() > 2)
+        {
+            for (size_t i = 0; i < vertical_points.size() - 1; i++)
+            {
                 cv::Point p1 = vertical_points[i];
                 cv::Point p2 = vertical_points[i + 1];
                 float angle = atan2(p2.y - p1.y, p2.x - p1.x) * 180.0 / M_PI;
@@ -2015,20 +2095,21 @@ private:
             }
 
             std::map<float, int> angle_count_vertical;
-            for (float angle : angles_vertical) {
+            for (float angle : angles_vertical)
                 angle_count_vertical[angle]++;
-            }
 
             float mode_angle_vertical = std::max_element(angle_count_vertical.begin(), angle_count_vertical.end(),
-                [](const std::pair<float, int>& a, const std::pair<float, int>& b) {
-                    return a.second < b.second;
-                })
+                                                         [](const std::pair<float, int> &a, const std::pair<float, int> &b)
+                                                         {
+                                                             return a.second < b.second;
+                                                         })
                                             ->first;
 
             cv::Point vertical_end(robot_position.x + 100 * cos((180 - mode_angle_vertical) * M_PI / 180.0),
-                robot_position.y - 100 * sin((180 - mode_angle_vertical) * M_PI / 180.0));
+                                   robot_position.y - 100 * sin((180 - mode_angle_vertical) * M_PI / 180.0));
 
-            if (error < 8) {
+            if (error < 8)
+            {
                 cv::line(bev_color_image, robot_position, vertical_end, cv::Scalar(0, 255, 0), 2);
                 is_offset_angle_lane = 1;
                 offset_angle_lane = 90 + (90 - mode_angle_vertical);
@@ -2051,11 +2132,10 @@ private:
         // used_lookahead = lookahead_near_pixel_ + (norm_angle * delta);
         // target_velocity_ = speed_curve_ + (norm_angle * (speed_straight_ - speed_curve_));
 
-        if (status_jalan_berkelok) {
+        if (status_jalan_berkelok)
             used_lookahead = lookahead_near_pixel_ * 0.5;
-        } else {
+        else
             used_lookahead = lookahead_near_pixel_;
-        }
         //? ============================================================
         //?         CREATE LOOKAHEAD MAT
         //? ============================================================
@@ -2064,19 +2144,19 @@ private:
 
         // Draw look-ahead distance far from robot position
         cv::circle(bev_color_image, robot_position, static_cast<int>(lookahead_far_pixel_),
-            cv::Scalar(255, 0, 0), 2);
+                   cv::Scalar(255, 0, 0), 2);
 
         // Draw look-ahead distance near from robot position
         cv::circle(bev_color_image, robot_position, static_cast<int>(lookahead_near_pixel_),
-            cv::Scalar(0, 0, 255), 2);
+                   cv::Scalar(0, 0, 255), 2);
 
         // Draw look-ahead distance used from robot position
         cv::circle(bev_color_image, robot_position, static_cast<int>(used_lookahead),
-            cv::Scalar(255, 0, 255), 2);
+                   cv::Scalar(255, 0, 255), 2);
 
         // Draw look-ahead for centroid calculation
         cv::circle(look_ahead_used, robot_position, static_cast<int>(used_lookahead),
-            cv::Scalar(255), 2);
+                   cv::Scalar(255), 2);
 
         //? ============================================================
         //?         GET CENTROID OF LOOKAHEAD USED
@@ -2096,24 +2176,28 @@ private:
         cv::Moments m_used_kanan_edge = cv::moments(lookahead_used_kanan_edge);
         cv::Moments m_used_kanan_dashed = cv::moments(lookahead_used_kanan_dashed);
 
-        if (m_used_kanan_edge.m00 != 0) {
+        if (m_used_kanan_edge.m00 != 0)
+        {
             closest_point_used_kanan_edge.x = static_cast<int>(m_used_kanan_edge.m10 / m_used_kanan_edge.m00);
             closest_point_used_kanan_edge.y = static_cast<int>(m_used_kanan_edge.m01 / m_used_kanan_edge.m00);
             cv::circle(bev_color_image, closest_point_used_kanan_edge, 5, cv::Scalar(255, 0, 255), 2);
         }
 
-        if (m_used_kanan_dashed.m00 != 0) {
+        if (m_used_kanan_dashed.m00 != 0)
+        {
             closest_point_used_kanan_dashed.x = static_cast<int>(m_used_kanan_dashed.m10 / m_used_kanan_dashed.m00);
             closest_point_used_kanan_dashed.y = static_cast<int>(m_used_kanan_dashed.m01 / m_used_kanan_dashed.m00);
             cv::circle(bev_color_image, closest_point_used_kanan_dashed, 5, cv::Scalar(255, 0, 255), 2);
         }
 
-        if (closest_point_used_kanan_edge.x > 0 && closest_point_used_kanan_edge.y > 0) {
+        if (closest_point_used_kanan_edge.x > 0 && closest_point_used_kanan_edge.y > 0)
+        {
             angle_used_kanan_ = computeAngle(closest_point_used_kanan_edge, robot_position);
             // logger.info("angle edge: %.2f", angle_used_kanan_);
         }
 
-        if (closest_point_used_kanan_dashed.x > 0 && closest_point_used_kanan_dashed.y > 0 && (cv::norm(closest_point_used_kanan_dashed - robot_position) > used_lookahead - 1)) {
+        if (closest_point_used_kanan_dashed.x > 0 && closest_point_used_kanan_dashed.y > 0 && (cv::norm(closest_point_used_kanan_dashed - robot_position) > used_lookahead - 1))
+        {
             angle_used_kanan_ = computeAngle(closest_point_used_kanan_dashed, robot_position);
             // logger.info("closest_point_used_kanan_dashed.x: %d %d ", closest_point_used_kanan_dashed.x, closest_point_used_kanan_dashed.y);
             // logger.info("angle dash: %.2f", angle_used_kanan_);
@@ -2134,22 +2218,36 @@ private:
         // transform depth thres to bev
 
         std::vector<cv::Point> real_obs_points;
-        cv::Point real_obs_centroid_pixels = { 0, 0 };
-        float real_obs_centroid_meter[2] = { 0, 0 };
+        cv::Point real_obs_centroid_pixels = {0, 0};
+        float real_obs_centroid_meter[2] = {0, 0};
 
         // sort contours_real_obs by distance to robot position
         std::sort(contours_real_obs.begin(), contours_real_obs.end(),
-            [&robot_position](const std::vector<cv::Point>& a, const std::vector<cv::Point>& b) {
-                cv::Point centroid_a = cv::Point(static_cast<int>(std::accumulate(a.begin(), a.end(), 0, [](int sum, const cv::Point& p) { return sum + p.x; }) / a.size()),
-                    static_cast<int>(std::accumulate(a.begin(), a.end(), 0, [](int sum, const cv::Point& p) { return sum + p.y; }) / a.size()));
-                cv::Point centroid_b = cv::Point(static_cast<int>(std::accumulate(b.begin(), b.end(), 0, [](int sum, const cv::Point& p) { return sum + p.x; }) / b.size()),
-                    static_cast<int>(std::accumulate(b.begin(), b.end(), 0, [](int sum, const cv::Point& p) { return sum + p.y; }) / b.size()));
-                return cv::norm(centroid_a - robot_position) < cv::norm(centroid_b - robot_position);
-            });
-        if (!contours_real_obs.empty()) {
+                  [&robot_position](const std::vector<cv::Point> &a, const std::vector<cv::Point> &b)
+                  {
+                      cv::Point centroid_a = cv::Point(static_cast<int>(std::accumulate(a.begin(), a.end(), 0, [](int sum, const cv::Point &p)
+                                                                                        { return sum + p.x; }) /
+                                                                        a.size()),
+                                                       static_cast<int>(std::accumulate(a.begin(), a.end(), 0, [](int sum, const cv::Point &p)
+                                                                                        { return sum + p.y; }) /
+                                                                        a.size()));
+                      cv::Point centroid_b = cv::Point(static_cast<int>(std::accumulate(b.begin(), b.end(), 0, [](int sum, const cv::Point &p)
+                                                                                        { return sum + p.x; }) /
+                                                                        b.size()),
+                                                       static_cast<int>(std::accumulate(b.begin(), b.end(), 0, [](int sum, const cv::Point &p)
+                                                                                        { return sum + p.y; }) /
+                                                                        b.size()));
+                      return cv::norm(centroid_a - robot_position) < cv::norm(centroid_b - robot_position);
+                  });
+        if (!contours_real_obs.empty())
+        {
             // draw closest contours_real_obs on bev_color_image
-            real_obs_centroid_pixels = cv::Point(static_cast<int>(std::accumulate(contours_real_obs[0].begin(), contours_real_obs[0].end(), 0, [](int sum, const cv::Point& p) { return sum + p.x; }) / contours_real_obs[0].size()),
-                static_cast<int>(std::accumulate(contours_real_obs[0].begin(), contours_real_obs[0].end(), 0, [](int sum, const cv::Point& p) { return sum + p.y; }) / contours_real_obs[0].size()));
+            real_obs_centroid_pixels = cv::Point(static_cast<int>(std::accumulate(contours_real_obs[0].begin(), contours_real_obs[0].end(), 0, [](int sum, const cv::Point &p)
+                                                                                  { return sum + p.x; }) /
+                                                                  contours_real_obs[0].size()),
+                                                 static_cast<int>(std::accumulate(contours_real_obs[0].begin(), contours_real_obs[0].end(), 0, [](int sum, const cv::Point &p)
+                                                                                  { return sum + p.y; }) /
+                                                                  contours_real_obs[0].size()));
 
             cv::circle(bev_color_image, real_obs_centroid_pixels, 15, cv::Scalar(255, 0, 0), 3);
             real_obs_centroid_meter[0] = (robot_position.x - real_obs_centroid_pixels.x) / meter_to_pixel_;
@@ -2175,22 +2273,36 @@ private:
         // transform depth thres to bev
 
         std::vector<cv::Point> sign_points;
-        cv::Point sign_centroid_pixels = { 0, 0 };
-        float sign_centroid_meter[2] = { 0, 0 };
+        cv::Point sign_centroid_pixels = {0, 0};
+        float sign_centroid_meter[2] = {0, 0};
 
         // sort contours_sign by distance to robot position
         std::sort(contours_sign.begin(), contours_sign.end(),
-            [&robot_position](const std::vector<cv::Point>& a, const std::vector<cv::Point>& b) {
-                cv::Point centroid_a = cv::Point(static_cast<int>(std::accumulate(a.begin(), a.end(), 0, [](int sum, const cv::Point& p) { return sum + p.x; }) / a.size()),
-                    static_cast<int>(std::accumulate(a.begin(), a.end(), 0, [](int sum, const cv::Point& p) { return sum + p.y; }) / a.size()));
-                cv::Point centroid_b = cv::Point(static_cast<int>(std::accumulate(b.begin(), b.end(), 0, [](int sum, const cv::Point& p) { return sum + p.x; }) / b.size()),
-                    static_cast<int>(std::accumulate(b.begin(), b.end(), 0, [](int sum, const cv::Point& p) { return sum + p.y; }) / b.size()));
-                return cv::norm(centroid_a - robot_position) < cv::norm(centroid_b - robot_position);
-            });
-        if (!contours_sign.empty()) {
+                  [&robot_position](const std::vector<cv::Point> &a, const std::vector<cv::Point> &b)
+                  {
+                      cv::Point centroid_a = cv::Point(static_cast<int>(std::accumulate(a.begin(), a.end(), 0, [](int sum, const cv::Point &p)
+                                                                                        { return sum + p.x; }) /
+                                                                        a.size()),
+                                                       static_cast<int>(std::accumulate(a.begin(), a.end(), 0, [](int sum, const cv::Point &p)
+                                                                                        { return sum + p.y; }) /
+                                                                        a.size()));
+                      cv::Point centroid_b = cv::Point(static_cast<int>(std::accumulate(b.begin(), b.end(), 0, [](int sum, const cv::Point &p)
+                                                                                        { return sum + p.x; }) /
+                                                                        b.size()),
+                                                       static_cast<int>(std::accumulate(b.begin(), b.end(), 0, [](int sum, const cv::Point &p)
+                                                                                        { return sum + p.y; }) /
+                                                                        b.size()));
+                      return cv::norm(centroid_a - robot_position) < cv::norm(centroid_b - robot_position);
+                  });
+        if (!contours_sign.empty())
+        {
             // draw closest contours_sign on bev_color_image
-            sign_centroid_pixels = cv::Point(static_cast<int>(std::accumulate(contours_sign[0].begin(), contours_sign[0].end(), 0, [](int sum, const cv::Point& p) { return sum + p.x; }) / contours_sign[0].size()),
-                static_cast<int>(std::accumulate(contours_sign[0].begin(), contours_sign[0].end(), 0, [](int sum, const cv::Point& p) { return sum + p.y; }) / contours_sign[0].size()));
+            sign_centroid_pixels = cv::Point(static_cast<int>(std::accumulate(contours_sign[0].begin(), contours_sign[0].end(), 0, [](int sum, const cv::Point &p)
+                                                                              { return sum + p.x; }) /
+                                                              contours_sign[0].size()),
+                                             static_cast<int>(std::accumulate(contours_sign[0].begin(), contours_sign[0].end(), 0, [](int sum, const cv::Point &p)
+                                                                              { return sum + p.y; }) /
+                                                              contours_sign[0].size()));
 
             cv::circle(bev_color_image, sign_centroid_pixels, 15, cv::Scalar(0, 200, 255), 3);
             sign_centroid_meter[0] = (robot_position.x - sign_centroid_pixels.x) / meter_to_pixel_;
@@ -2263,7 +2375,8 @@ private:
 
         static int8_t counter_publish = 0;
 
-        if (counter_publish++ > 5) {
+        if (counter_publish++ > 5)
+        {
             counter_publish = 0;
 
             // -- Convert depth image to 8-bit for visualization
@@ -2277,7 +2390,7 @@ private:
             // -- Show FPS
             double fps = 1.0 / elapsed_time;
             cv::putText(weigted_image, "FPS: " + std::to_string(fps), cv::Point(10, 30),
-                cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(255, 255, 255), 2);
+                        cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(255, 255, 255), 2);
 
             // cv::Mat showed_image;
             // cv::cvtColor(display_thres_bev, display_thres_bev, cv::COLOR_GRAY2BGR);
@@ -2360,7 +2473,7 @@ private:
         }
     }
 
-    int8_t edge_reference_detection(cv::Mat& bev_cleaned_binary, cv::Mat& bev_color_image, std::vector<cv::Point>& left_flood_fill_points, std::vector<cv::Point>& right_flood_fill_points)
+    int8_t edge_reference_detection(cv::Mat &bev_cleaned_binary, cv::Mat &bev_color_image, std::vector<cv::Point> &left_flood_fill_points, std::vector<cv::Point> &right_flood_fill_points)
     {
         left_flood_fill_points.clear();
         right_flood_fill_points.clear();
@@ -2373,8 +2486,8 @@ private:
         polygon_points[0][1] = cv::Point(valid_center_left_, bev_height);
         polygon_points[0][2] = cv::Point(0, valid_up_);
         polygon_points[0][3] = cv::Point(0, bev_height);
-        const cv::Point* ppt[1] = { polygon_points[0] };
-        int npt[] = { 4 };
+        const cv::Point *ppt[1] = {polygon_points[0]};
+        int npt[] = {4};
         cv::fillPoly(line_valid_region, ppt, npt, 1, cv::Scalar(255));
         cv::fillPoly(bev_color_image, ppt, npt, 1, cv::Scalar(0, 255, 0));
 
@@ -2403,10 +2516,12 @@ private:
         uint8_t left_valid = 0;
         uint8_t right_valid = 0;
 
-        for (int i = 0; i < (bev_height - cropping_distance_) - 10; i += 10) {
+        for (int i = 0; i < (bev_height - cropping_distance_) - 10; i += 10)
+        {
             cv::Point potential_rising = cv::Point(-1, -1);
             cv::Point potential_falling = cv::Point(-1, -1);
-            for (float j = 0.1; j < 180; j += 0.1) {
+            for (float j = 0.1; j < 180; j += 0.1)
+            {
                 float distance = i;
                 float angle = j * M_PI / 180.0f;
                 float angle_last = (j - 0.1) * M_PI / 180.0f;
@@ -2416,22 +2531,29 @@ private:
                 int16_t y_last = static_cast<int16_t>(robot_position_.y - 15 - distance * sin(angle_last));
                 // cv::circle(bev_color_image_raw, cv::Point(x, y), 2, cv::Scalar(0, 0, 255), -1);
 
-                if (x >= 0 && x < bev_width && y >= 0 && y < bev_height - 25) {
+                if (x >= 0 && x < bev_width && y >= 0 && y < bev_height - 25)
+                {
                     int16_t pixel_value_dot = bev_cleaned_binary.at<uchar>(y, x) - bev_cleaned_binary.at<uchar>(y_last, x_last);
-                    if (pixel_value_dot > 0 && line_valid_region.at<uchar>(y, x) == 0 && stop_right == 0) {
+                    if (pixel_value_dot > 0 && line_valid_region.at<uchar>(y, x) == 0 && stop_right == 0)
+                    {
                         potential_rising = cv::Point(x, y);
                         right_flood_fill_points.push_back(potential_rising);
                         break;
-                    } else if (pixel_value_dot > 0 && line_valid_region.at<uchar>(y, x) == 255) {
+                    }
+                    else if (pixel_value_dot > 0 && line_valid_region.at<uchar>(y, x) == 255)
+                    {
                         cv::circle(bev_color_image, potential_rising, 5, cv::Scalar(0, 0, 255), -1);
                         stop_right = 1;
-                    } else if (pixel_value_dot < 0) {
+                    }
+                    else if (pixel_value_dot < 0)
+                    {
                         break;
                     }
                 }
             }
 
-            for (float j = 179.9; j > 0; j -= 0.1) {
+            for (float j = 179.9; j > 0; j -= 0.1)
+            {
                 float distance = i;
                 float angle = j * M_PI / 180.0f;
                 float angle_last = (j + 0.1) * M_PI / 180.0f;
@@ -2441,47 +2563,48 @@ private:
                 int16_t y_last = static_cast<int16_t>(robot_position_.y - 15 - distance * sin(angle_last));
                 // cv::circle(bev_color_image_raw, cv::Point(x, y), 2, cv::Scalar(255, 0, 0), -1);
 
-                if (x >= 0 && x < bev_width && y >= 0 && y < bev_height - 25) {
+                if (x >= 0 && x < bev_width && y >= 0 && y < bev_height - 25)
+                {
                     int16_t pixel_value_dot = bev_cleaned_binary.at<uchar>(y, x) - bev_cleaned_binary.at<uchar>(y_last, x_last);
-                    if (pixel_value_dot > 0 && line_valid_region.at<uchar>(y, x) == 0 && stop_left == 0) {
+                    if (pixel_value_dot > 0 && line_valid_region.at<uchar>(y, x) == 0 && stop_left == 0)
+                    {
                         potential_falling = cv::Point(x, y);
                         left_flood_fill_points.push_back(potential_falling);
                         break;
-                    } else if (pixel_value_dot > 0 && line_valid_region.at<uchar>(y, x) == 255) {
+                    }
+                    else if (pixel_value_dot > 0 && line_valid_region.at<uchar>(y, x) == 255)
+                    {
                         cv::circle(bev_color_image, potential_falling, 3, cv::Scalar(255, 0, 0), -1);
                         stop_left = 1;
-                    } else if (pixel_value_dot < 0) {
+                    }
+                    else if (pixel_value_dot < 0)
+                    {
                         break;
                     }
                 }
             }
         }
 
-        for (int i = 0; i < right_flood_fill_points.size(); i++) {
+        for (int i = 0; i < right_flood_fill_points.size(); i++)
             cv::circle(bev_color_image, right_flood_fill_points[i], 5, cv::Scalar(0, 0, 255), -1);
-        }
 
-        for (int i = 0; i < left_flood_fill_points.size(); i++) {
+        for (int i = 0; i < left_flood_fill_points.size(); i++)
             cv::circle(bev_color_image, left_flood_fill_points[i], 5, cv::Scalar(255, 0, 0), -1);
-        }
 
-        if (right_flood_fill_points.size() > 2) {
+        if (right_flood_fill_points.size() > 2)
             right_valid = 1;
-        }
 
-        if (left_flood_fill_points.size() > 2) {
+        if (left_flood_fill_points.size() > 2)
             left_valid = 1;
-        }
 
-        if (left_valid && right_valid) {
+        if (left_valid && right_valid)
             return 3;
-        } else if (right_valid) {
+        else if (right_valid)
             return 2;
-        } else if (left_valid) {
+        else if (left_valid)
             return 1;
-        } else {
+        else
             return 0;
-        }
     }
 
     void callback_tim_pointcloud_routine()
@@ -2489,7 +2612,8 @@ private:
         // ==================================================================
         //                      WAIT TF TO BE INTIALIZED
         // ==================================================================
-        if (!tf_is_initialized) {
+        if (!tf_is_initialized)
+        {
             logger.warn("TF not initialized, skipping point cloud processing");
             return;
         }
@@ -2513,7 +2637,8 @@ private:
         {
             std::lock_guard<std::mutex> lock(point_cloud_mutex_);
 
-            if (!point_cloud_) {
+            if (!point_cloud_)
+            {
                 logger.warn("Point cloud not yet available, skipping publishing");
                 return;
             }
@@ -2542,8 +2667,8 @@ private:
         static pcl::CropBox<pcl::PointXYZ> crop_box;
         crop_box.setInputCloud(points_camera2base.makeShared());
         crop_box.setMin(Eigen::Vector4f(0.2, -0.35, 0.15, 1.0)); // In front of robot
-        crop_box.setMax(Eigen::Vector4f(2.0, 0.35, 1.0, 1.0)); // 2m ahead, ±1m wide, max 2m tall
-        crop_box.setNegative(false); // Keep only points inside the box
+        crop_box.setMax(Eigen::Vector4f(2.0, 0.35, 1.0, 1.0));   // 2m ahead, ±1m wide, max 2m tall
+        crop_box.setNegative(false);                             // Keep only points inside the box
         crop_box.filter(points_camera2base_filtered);
 
         pcl::VoxelGrid<pcl::PointXYZ> voxel_grid;
@@ -2557,7 +2682,7 @@ private:
         static pcl::CropBox<pcl::PointXYZ> crop_box_sign;
         crop_box_sign.setInputCloud(points_camera2base.makeShared());
         crop_box_sign.setMin(Eigen::Vector4f(0.01, -0.5, 0.07, 1.0)); // min x, y, z
-        crop_box_sign.setMax(Eigen::Vector4f(1.8, 0.2, 0.2, 1.0)); // max x, y, z
+        crop_box_sign.setMax(Eigen::Vector4f(1.8, 0.2, 0.2, 1.0));    // max x, y, z
         crop_box_sign.setNegative(false);
         crop_box_sign.filter(points_camera2base_filtered_for_sign);
 
@@ -2596,20 +2721,20 @@ private:
 
     void callback_tim_routine()
     {
-        if (shutdown_requested_) {
+        if (shutdown_requested_)
             return;
-        }
 
         std::lock_guard<std::mutex> lock(pipeline_mutex_);
 
-        if (!pipeline_started_) {
+        if (!pipeline_started_)
             return;
-        }
 
-        try {
+        try
+        {
             // Wait for frames with timeout
             rs2::frameset frameset;
-            if (!pipe_.try_wait_for_frames(&frameset, 1000)) { // 1 second timeout
+            if (!pipe_.try_wait_for_frames(&frameset, 1000))
+            { // 1 second timeout
                 logger.warn("Failed to get frames from the camera within timeout.");
 
                 pipe_.stop();
@@ -2618,25 +2743,28 @@ private:
                 rclcpp::shutdown();
                 return;
             }
-            if (!frameset) {
+            if (!frameset)
+            {
                 logger.error("Failed to get frames from the camera.");
                 return;
             }
 
             frameset = align_to_color.process(frameset);
 
-            if (frameset) {
+            if (frameset)
+            {
                 rs2::video_frame color_frame = frameset.get_color_frame();
                 rs2::depth_frame depth_frame = frameset.get_depth_frame();
 
-                if (!color_frame || !depth_frame) {
+                if (!color_frame || !depth_frame)
+                {
                     logger.error("Failed to get color or depth bev_color_image.");
                     return;
                 }
 
                 // Convert to OpenCV format
-                cv::Mat color_image(cv::Size(color_frame.get_width(), color_frame.get_height()), CV_8UC3, (void*)color_frame.get_data(), cv::Mat::AUTO_STEP);
-                cv::Mat depth_image(cv::Size(depth_frame.get_width(), depth_frame.get_height()), CV_16U, (void*)depth_frame.get_data(), cv::Mat::AUTO_STEP);
+                cv::Mat color_image(cv::Size(color_frame.get_width(), color_frame.get_height()), CV_8UC3, (void *)color_frame.get_data(), cv::Mat::AUTO_STEP);
+                cv::Mat depth_image(cv::Size(depth_frame.get_width(), depth_frame.get_height()), CV_16U, (void *)depth_frame.get_data(), cv::Mat::AUTO_STEP);
 
                 // Get camera intrinsics
                 rs2_intrinsics intrinsics = color_frame.get_profile().as<rs2::video_stream_profile>().get_intrinsics();
@@ -2668,19 +2796,22 @@ private:
                 auto Vertex = points.get_vertices();
 
                 // Iterate through all points and set XYZ coordinates
-                for (size_t i = 0; i < points.size(); ++i) {
+                for (size_t i = 0; i < points.size(); ++i)
+                {
                     cloud->points[i].x = Vertex[i].x;
                     cloud->points[i].y = Vertex[i].y;
                     cloud->points[i].z = Vertex[i].z;
                 }
 
-                if (!cloud) {
+                if (!cloud)
+                {
                     logger.error("Failed to convert RealSense points to PCL cloud.");
                     return;
                 }
 
                 // Check if the point cloud is empty
-                if (cloud->empty()) {
+                if (cloud->empty())
+                {
                     logger.error("Point cloud is empty.");
                     return;
                 }
@@ -2782,18 +2913,20 @@ private:
                 // logger.info("Timer routine elapsed time: %.4f seconds", elapsed_time);
                 // ==================================================================
             }
-        } catch (const rs2::error& e) {
-            if (!shutdown_requested_) {
+        }
+        catch (const rs2::error &e)
+        {
+            if (!shutdown_requested_)
                 RCLCPP_ERROR(this->get_logger(), "RealSense error in callback: %s", e.what());
-            }
-        } catch (const std::exception& e) {
-            if (!shutdown_requested_) {
+        }
+        catch (const std::exception &e)
+        {
+            if (!shutdown_requested_)
                 RCLCPP_ERROR(this->get_logger(), "Unexpected error in callback: %s", e.what());
-            }
         }
     }
 
-    void transform_point(float* point_in, float* point_out)
+    void transform_point(float *point_in, float *point_out)
     {
         geometry_msgs::msg::PointStamped point_base, point_camera;
         point_base.header.frame_id = "base_link";
@@ -2801,12 +2934,15 @@ private:
         point_base.point.y = point_in[1];
         point_base.point.z = point_in[2];
 
-        try {
+        try
+        {
             tf2::doTransform(point_base, point_camera, tf_base_camera_);
             point_out[0] = point_camera.point.x;
             point_out[1] = point_camera.point.y;
             point_out[2] = point_camera.point.z;
-        } catch (const tf2::TransformException& ex) {
+        }
+        catch (const tf2::TransformException &ex)
+        {
             logger.warn("Failed to transform point: %s", ex.what());
             point_out[0] = point_in[0];
             point_out[1] = point_in[1];
@@ -2814,12 +2950,12 @@ private:
         }
     }
 
-    void findPointCloudSign(const cv::Mat& image_thres,
-        cv::Mat& new_thres,
-        cv::Mat& depth_image,
-        int center_cam_x,
-        int center_cam_y,
-        const rs2_intrinsics& intrinsics)
+    void findPointCloudSign(const cv::Mat &image_thres,
+                            cv::Mat &new_thres,
+                            cv::Mat &depth_image,
+                            int center_cam_x,
+                            int center_cam_y,
+                            const rs2_intrinsics &intrinsics)
     {
         // RESET SIGN CENTROID
         sign_centroid_[0] = 0.0f;
@@ -2830,9 +2966,12 @@ private:
         // 1. Ekstrak titik dari mask dan convert ke PCL format 2D
         pcl::PointCloud<pcl::PointXYZ>::Ptr point_cloud_2d(new pcl::PointCloud<pcl::PointXYZ>());
 
-        for (int rows = 0; rows < image_thres.rows; rows += 2) {
-            for (int cols = 0; cols < image_thres.cols; cols += 2) {
-                if (image_thres.at<uint8_t>(rows, cols) > 0) {
+        for (int rows = 0; rows < image_thres.rows; rows += 2)
+        {
+            for (int cols = 0; cols < image_thres.cols; cols += 2)
+            {
+                if (image_thres.at<uint8_t>(rows, cols) > 0)
+                {
                     pcl::PointXYZ point;
                     point.x = cols - center_cam_x;
                     point.y = center_cam_y - rows;
@@ -2842,7 +2981,8 @@ private:
             }
         }
 
-        if (point_cloud_2d->empty() || point_cloud_2d->size() < 5) {
+        if (point_cloud_2d->empty() || point_cloud_2d->size() < 5)
+        {
             // logger.warn("No points found in the point cloud from image thresholding");
             return;
         }
@@ -2853,7 +2993,8 @@ private:
         voxel_grid_2d.setLeafSize(0.02f, 0.02f, 0.02f);
         voxel_grid_2d.filter(*point_cloud_2d);
 
-        if (point_cloud_2d->empty() || point_cloud_2d->size() < 5) {
+        if (point_cloud_2d->empty() || point_cloud_2d->size() < 5)
+        {
             // logger.warn("No points found in the point cloud from image thresholding");
             return;
         }
@@ -2863,14 +3004,16 @@ private:
         float cx = intrinsics.ppx;
         float cy = intrinsics.ppy;
 
-        if (fx <= 0 || fy <= 0 || cx <= 0 || cy <= 0) {
+        if (fx <= 0 || fy <= 0 || cx <= 0 || cy <= 0)
+        {
             // logger.error("Invalid camera intrinsics: fx=%.2f, fy=%.2f, cx=%.2f, cy=%.2f", fx, fy, cx, cy);
             return;
         }
 
         pcl::PointCloud<pcl::PointXYZ> point_cloud_3d;
         // Get transformation from 2D into 3D using standard RealSense axis convention
-        for (const auto& point : *point_cloud_2d) {
+        for (const auto &point : *point_cloud_2d)
+        {
             float pixel_x = static_cast<float>(point.x + center_cam_x);
             float pixel_y = static_cast<float>(center_cam_y - point.y);
 
@@ -2892,7 +3035,8 @@ private:
             point_cloud_3d.push_back(world_point);
         }
 
-        if (point_cloud_3d.empty() || point_cloud_3d.size() < 5) {
+        if (point_cloud_3d.empty() || point_cloud_3d.size() < 5)
+        {
             // logger.warn("No 3D points found in the point cloud from image thresholding");
             return;
         }
@@ -2901,7 +3045,8 @@ private:
         pcl::PointCloud<pcl::PointXYZ> points_camera2base;
         pcl_ros::transformPointCloud(point_cloud_3d, points_camera2base, tf_camera_base_);
 
-        if (points_camera2base.empty() || points_camera2base.size() < 5) {
+        if (points_camera2base.empty() || points_camera2base.size() < 5)
+        {
             // logger.warn("No points found in the point cloud after transformation to camera frame");
             return;
         }
@@ -2915,11 +3060,12 @@ private:
         pcl::CropBox<pcl::PointXYZ> crop_box;
         crop_box.setInputCloud(points_camera2base.makeShared());
         crop_box.setMin(Eigen::Vector4f(0.1, -0.3, 0.04, 1.0)); // In front of robot
-        crop_box.setMax(Eigen::Vector4f(1.30, 0.3, 0.2, 1.0)); // (1.10, 0.3, 0.2, 1.0)
-        crop_box.setNegative(false); // Keep only points inside the box
+        crop_box.setMax(Eigen::Vector4f(1.30, 0.3, 0.2, 1.0));  // (1.10, 0.3, 0.2, 1.0)
+        crop_box.setNegative(false);                            // Keep only points inside the box
         crop_box.filter(points_camera2base);
 
-        if (points_camera2base.empty() || points_camera2base.size() < 5) {
+        if (points_camera2base.empty() || points_camera2base.size() < 5)
+        {
             // logger.warn("No points found in the point cloud after transformation to camera frame");
             return;
         }
@@ -2933,7 +3079,8 @@ private:
         pcl::PointCloud<pcl::PointXYZ> points_base2camera;
         pcl_ros::transformPointCloud(points_camera2base, points_base2camera, tf_base_camera_);
 
-        if (points_base2camera.empty() || points_base2camera.size() < 5) {
+        if (points_base2camera.empty() || points_base2camera.size() < 5)
+        {
             // logger.warn("No points found in the point cloud after transformation to base frame");
             return;
         }
@@ -2943,9 +3090,10 @@ private:
 
         // 5. Proyeksikan hasil PCL ke BEV
         std::vector<cv::Point2f> bev_points;
-        for (const auto& img_point : points_base2camera) {
+        for (const auto &img_point : points_base2camera)
+        {
             // Project 3D world point ke pixel kamera
-            float point_3d[3] = { img_point.x, img_point.y, img_point.z };
+            float point_3d[3] = {img_point.x, img_point.y, img_point.z};
             float pixel_proj[2];
             rs2_project_point_to_pixel(pixel_proj, &intrinsics, point_3d);
 
@@ -2953,21 +3101,24 @@ private:
         }
     }
 
-    void findPointCloud(const cv::Mat& image_thres,
-        cv::Mat& new_thres,
-        cv::Mat& depth_image,
-        int center_cam_x,
-        int center_cam_y,
-        const rs2_intrinsics& intrinsics)
+    void findPointCloud(const cv::Mat &image_thres,
+                        cv::Mat &new_thres,
+                        cv::Mat &depth_image,
+                        int center_cam_x,
+                        int center_cam_y,
+                        const rs2_intrinsics &intrinsics)
     {
         new_thres = cv::Mat::zeros(new_thres.size(), CV_8U);
 
         // 1. Ekstrak titik dari mask dan convert ke PCL format 2D
         pcl::PointCloud<pcl::PointXYZ>::Ptr point_cloud_2d(new pcl::PointCloud<pcl::PointXYZ>());
 
-        for (int rows = 0; rows < image_thres.rows; rows += 2) {
-            for (int cols = 0; cols < image_thres.cols; cols += 2) {
-                if (image_thres.at<uint8_t>(rows, cols) > 0) {
+        for (int rows = 0; rows < image_thres.rows; rows += 2)
+        {
+            for (int cols = 0; cols < image_thres.cols; cols += 2)
+            {
+                if (image_thres.at<uint8_t>(rows, cols) > 0)
+                {
                     pcl::PointXYZ point;
                     point.x = cols - center_cam_x;
                     point.y = center_cam_y - rows;
@@ -2977,7 +3128,8 @@ private:
             }
         }
 
-        if (point_cloud_2d->empty() || point_cloud_2d->size() < 5) {
+        if (point_cloud_2d->empty() || point_cloud_2d->size() < 5)
+        {
             // logger.warn("No points found in the point cloud from image thresholding");
             return;
         }
@@ -2988,7 +3140,8 @@ private:
         voxel_grid_2d.setLeafSize(0.02f, 0.02f, 0.02f);
         voxel_grid_2d.filter(*point_cloud_2d);
 
-        if (point_cloud_2d->empty() || point_cloud_2d->size() < 5) {
+        if (point_cloud_2d->empty() || point_cloud_2d->size() < 5)
+        {
             // logger.warn("No points found in the point cloud from image thresholding");
             return;
         }
@@ -2998,14 +3151,16 @@ private:
         float cx = intrinsics.ppx;
         float cy = intrinsics.ppy;
 
-        if (fx <= 0 || fy <= 0 || cx <= 0 || cy <= 0) {
+        if (fx <= 0 || fy <= 0 || cx <= 0 || cy <= 0)
+        {
             // logger.error("Invalid camera intrinsics: fx=%.2f, fy=%.2f, cx=%.2f, cy=%.2f", fx, fy, cx, cy);
             return;
         }
 
         pcl::PointCloud<pcl::PointXYZ> point_cloud_3d;
         // Get transformation from 2D into 3D using standard RealSense axis convention
-        for (const auto& point : *point_cloud_2d) {
+        for (const auto &point : *point_cloud_2d)
+        {
             float pixel_x = static_cast<float>(point.x + center_cam_x);
             float pixel_y = static_cast<float>(center_cam_y - point.y);
 
@@ -3027,7 +3182,8 @@ private:
             point_cloud_3d.push_back(world_point);
         }
 
-        if (point_cloud_3d.empty() || point_cloud_3d.size() < 5) {
+        if (point_cloud_3d.empty() || point_cloud_3d.size() < 5)
+        {
             // logger.warn("No 3D points found in the point cloud from image thresholding");
             return;
         }
@@ -3036,7 +3192,8 @@ private:
         pcl::PointCloud<pcl::PointXYZ> points_camera2base;
         pcl_ros::transformPointCloud(point_cloud_3d, points_camera2base, tf_camera_base_);
 
-        if (points_camera2base.empty() || points_camera2base.size() < 5) {
+        if (points_camera2base.empty() || points_camera2base.size() < 5)
+        {
             // logger.warn("No points found in the point cloud after transformation to camera frame");
             return;
         }
@@ -3050,11 +3207,12 @@ private:
         pcl::CropBox<pcl::PointXYZ> crop_box;
         crop_box.setInputCloud(points_camera2base.makeShared());
         crop_box.setMin(Eigen::Vector4f(0.05, -0.3, 0.25, 1.0)); // In front of robot
-        crop_box.setMax(Eigen::Vector4f(1.5, 0.3, 0.35, 1.0)); // 2m ahead, ±1m wide, max 2m tall
-        crop_box.setNegative(false); // Keep only points inside the box
+        crop_box.setMax(Eigen::Vector4f(1.5, 0.3, 0.35, 1.0));   // 2m ahead, ±1m wide, max 2m tall
+        crop_box.setNegative(false);                             // Keep only points inside the box
         crop_box.filter(points_camera2base);
 
-        if (points_camera2base.empty() || points_camera2base.size() < 5) {
+        if (points_camera2base.empty() || points_camera2base.size() < 5)
+        {
             // logger.warn("No points found in the point cloud after transformation to camera frame");
             return;
         }
@@ -3062,16 +3220,18 @@ private:
         pcl::PointCloud<pcl::PointXYZ> points_base2camera;
         pcl_ros::transformPointCloud(points_camera2base, points_base2camera, tf_base_camera_);
 
-        if (points_base2camera.empty() || points_base2camera.size() < 5) {
+        if (points_base2camera.empty() || points_base2camera.size() < 5)
+        {
             // logger.warn("No points found in the point cloud after transformation to base frame");
             return;
         }
 
         // 5. Proyeksikan hasil PCL ke BEV
         std::vector<cv::Point2f> bev_points;
-        for (const auto& img_point : points_base2camera) {
+        for (const auto &img_point : points_base2camera)
+        {
             // Project 3D world point ke pixel kamera
-            float point_3d[3] = { img_point.x, img_point.y, img_point.z };
+            float point_3d[3] = {img_point.x, img_point.y, img_point.z};
             float pixel_proj[2];
             rs2_project_point_to_pixel(pixel_proj, &intrinsics, point_3d);
 
@@ -3079,24 +3239,25 @@ private:
         }
     }
 
-    std::vector<cv::Point> sliding_windows(const cv::Mat& binary_image, int width, int height,
-        int min_pixels, cv::Mat& output_image)
+    std::vector<cv::Point> sliding_windows(const cv::Mat &binary_image, int width, int height,
+                                           int min_pixels, cv::Mat &output_image)
     {
         std::vector<cv::Point> detected_points;
         cv::Scalar color;
 
-        if (width > height) {
+        if (width > height)
             color = cv::Scalar(255, 0, 0);
-        } else {
+        else
             color = cv::Scalar(0, 0, 255);
-        }
 
         // Create a sliding window
         cv::Rect window(0, 0, width, height);
         cv::Mat roi = binary_image(window);
 
-        for (int row = 0; row < binary_image.rows; row += window.height) {
-            for (int col = 0; col < binary_image.cols; col += window.width) {
+        for (int row = 0; row < binary_image.rows; row += window.height)
+        {
+            for (int col = 0; col < binary_image.cols; col += window.width)
+            {
                 // Update the sliding window position
 
                 window.x = col;
@@ -3116,15 +3277,18 @@ private:
                 cv::findContours(roi, contours, cv::RETR_EXTERNAL, cv::CHAIN_APPROX_SIMPLE);
 
                 // Remove small contours
-                for (size_t i = 0; i < contours.size(); i++) {
-                    if (cv::contourArea(contours[i]) < min_pixels) {
+                for (size_t i = 0; i < contours.size(); i++)
+                {
+                    if (cv::contourArea(contours[i]) < min_pixels)
+                    {
                         contours.erase(contours.begin() + i);
                         i--;
                     }
                 }
 
                 // Draw centroid of each contour and store it
-                for (const auto& contour : contours) {
+                for (const auto &contour : contours)
+                {
                     cv::Moments m = cv::moments(contour);
                     int cx = int(m.m10 / m.m00) + col; // Adjust centroid position relative to the full image
                     int cy = int(m.m01 / m.m00) + row;
@@ -3144,18 +3308,18 @@ private:
         return detected_points;
     }
 
-    float computeAngle(const cv::Point& from, const cv::Point& to)
+    float computeAngle(const cv::Point &from, const cv::Point &to)
     {
         cv::Point2f vec(to.x - from.x, to.y - from.y);
         return std::atan2(vec.y, vec.x) * 180.0f / CV_PI - 90.0f;
     }
 
-    cv::Point getCentroid(const std::vector<cv::Point>& contour)
+    cv::Point getCentroid(const std::vector<cv::Point> &contour)
     {
         cv::Moments m = cv::moments(contour);
         if (m.m00 == 0)
-            return { -1, -1 };
-        return { static_cast<int>(m.m10 / m.m00), static_cast<int>(m.m01 / m.m00) };
+            return {-1, -1};
+        return {static_cast<int>(m.m10 / m.m00), static_cast<int>(m.m01 / m.m00)};
     }
 
     /**
@@ -3181,7 +3345,7 @@ private:
         float wiggle_fd = gaussianMF(curvature, wiggle_center_, wiggle_sigma_);
         float curve_fd = gaussianMF(curvature, curve_center_, curve_sigma_);
 
-        return { straight_fd, wiggle_fd, curve_fd };
+        return {straight_fd, wiggle_fd, curve_fd};
     }
 
     /**
@@ -3262,14 +3426,15 @@ private:
     }
 
     // Fungsi ray casting
-    cv::Point2f scan_line(cv::Point2f start, float angle_deg, const cv::Mat& mask)
+    cv::Point2f scan_line(cv::Point2f start, float angle_deg, const cv::Mat &mask)
     {
         float angle_rad = angle_deg * CV_PI / 180.0f;
         float dx = std::cos(angle_rad);
         float dy = std::sin(angle_rad);
         float x = start.x, y = start.y;
 
-        for (int step = 0; step < 100; ++step) { // 100 pixel max
+        for (int step = 0; step < 100; ++step)
+        { // 100 pixel max
             int ix = cvRound(x);
             int iy = cvRound(y);
             if (ix < 0 || iy < 0 || ix >= mask.cols || iy >= mask.rows)
@@ -3286,13 +3451,14 @@ private:
         cv::Point2f start,
         float theta_init,
         float offset,
-        const cv::Mat& mask)
+        const cv::Mat &mask)
     {
         std::vector<cv::Point2f> centers;
         cv::Point2f curr = start;
         float theta = theta_init;
 
-        for (int i = 0; i < 500; ++i) { // batasi max step
+        for (int i = 0; i < 500; ++i)
+        { // batasi max step
             // Scan kiri & kanan
             cv::Point2f left = scan_line(curr, theta - offset, mask);
             cv::Point2f right = scan_line(curr, theta + offset, mask);
@@ -3317,11 +3483,13 @@ private:
 
     void setup_signal_handlers()
     {
-        std::signal(SIGINT, [](int) {
+        std::signal(SIGINT, [](int)
+                    {
             RCLCPP_INFO(rclcpp::get_logger("vision_capture3"), "Received SIGINT, shutting down gracefully...");
             rclcpp::shutdown(); });
 
-        std::signal(SIGTERM, [](int) {
+        std::signal(SIGTERM, [](int)
+                    {
             RCLCPP_INFO(rclcpp::get_logger("vision_capture3"), "Received SIGTERM, shutting down gracefully...");
             rclcpp::shutdown(); });
     }
@@ -3332,53 +3500,65 @@ private:
         logger.info("Cleaning up RealSense resources...");
         std::lock_guard<std::mutex> lock(pipeline_mutex_);
 
-        if (pipeline_started_) {
-            try {
+        if (pipeline_started_)
+        {
+            try
+            {
                 logger.info("Stopping RealSense pipeline...");
                 pipe_.stop();
                 pipeline_started_ = false;
                 logger.info("RealSense pipeline stopped successfully");
-            } catch (const rs2::error& e) {
+            }
+            catch (const rs2::error &e)
+            {
                 logger.error("Error stopping RealSense pipeline: %s", e.what());
-            } catch (const std::exception& e) {
+            }
+            catch (const std::exception &e)
+            {
                 logger.error("Unexpected error stopping RealSense pipeline: %s", e.what());
             }
         }
     }
 
-    void check_error(rs2_error* e)
+    void check_error(rs2_error *e)
     {
-        if (e) {
+        if (e)
+        {
             fprintf(stderr, "RealSense error calling %s(%s):\n    %s\n",
-                rs2_get_failed_function(e),
-                rs2_get_failed_args(e),
-                rs2_get_error_message(e));
+                    rs2_get_failed_function(e),
+                    rs2_get_failed_args(e),
+                    rs2_get_error_message(e));
             rs2_free_error(e);
             exit(EXIT_FAILURE);
         }
     }
 
-    void print_device_info(const rs2::device& dev)
+    void print_device_info(const rs2::device &dev)
     {
         // Query all sensors (depth, color, motion, etc.)
-        for (rs2::sensor sensor : dev.query_sensors()) {
+        for (rs2::sensor sensor : dev.query_sensors())
+        {
             std::cout << "\nSensor: " << sensor.get_info(RS2_CAMERA_INFO_NAME) << std::endl;
 
             std::vector<rs2::stream_profile> profiles = sensor.get_stream_profiles();
 
-            for (const rs2::stream_profile& profile : profiles) {
+            for (const rs2::stream_profile &profile : profiles)
+            {
                 int fps = profile.fps();
                 if (fps < 60)
                     continue;
 
-                if (profile.is<rs2::video_stream_profile>()) {
+                if (profile.is<rs2::video_stream_profile>())
+                {
                     auto vprof = profile.as<rs2::video_stream_profile>();
                     std::cout << "  Stream: " << rs2_stream_to_string(vprof.stream_type())
                               << " " << vprof.width() << "x" << vprof.height()
                               << " @ " << vprof.fps()
                               << " Format: " << rs2_format_to_string(vprof.format())
                               << std::endl;
-                } else {
+                }
+                else
+                {
                     std::cout << "  Stream: " << rs2_stream_to_string(profile.stream_type())
                               << " @ " << profile.fps()
                               << " Format: " << rs2_format_to_string(profile.format())
@@ -3399,9 +3579,8 @@ private:
         // Publish the controlbox data
         std_msgs::msg::Int16MultiArray controlbox_msg;
         controlbox_msg.data.resize(controlbox_size);
-        for (size_t i = 0; i < controlbox_size; ++i) {
+        for (size_t i = 0; i < controlbox_size; ++i)
             controlbox_msg.data[i] = controlbox_data[i];
-        }
         pub_controlbox_->publish(controlbox_msg);
 
         save_config_master();
@@ -3521,9 +3700,8 @@ private:
     // callbak controlbox
     void callback_sub_controlbox(const std_msgs::msg::Int16MultiArray::SharedPtr msg)
     {
-        for (size_t i = 0; i < msg->data.size(); ++i) {
+        for (size_t i = 0; i < msg->data.size(); ++i)
             controlbox_data[i] = msg->data[i];
-        }
 
         // Save the configuration to file
         saveConfig();
@@ -3536,9 +3714,8 @@ private:
 
         YAML::Node config = YAML::LoadFile(config_file);
 
-        for (size_t i = 0; i < controlbox_size; ++i) {
+        for (size_t i = 0; i < controlbox_size; ++i)
             controlbox_data[i] = config["Config"]["slider_" + std::to_string(i + 1)].as<int>();
-        }
 
         kp_steering_ = config["Config"]["kp_steering"].as<float>();
         ki_steering_ = config["Config"]["ki_steering"].as<float>();
@@ -3584,9 +3761,8 @@ private:
         // publish the controlbox data
         std_msgs::msg::Int16MultiArray controlbox_msg;
         controlbox_msg.data.resize(controlbox_size);
-        for (size_t i = 0; i < controlbox_size; ++i) {
+        for (size_t i = 0; i < controlbox_size; ++i)
             controlbox_msg.data[i] = controlbox_data[i];
-        }
         pub_controlbox_->publish(controlbox_msg);
 
         save_config_master();
@@ -3601,9 +3777,8 @@ private:
 
         YAML::Node config;
         config["Config"]["slider_size"] = controlbox_size;
-        for (size_t i = 0; i < controlbox_size; ++i) {
+        for (size_t i = 0; i < controlbox_size; ++i)
             config["Config"]["slider_" + std::to_string(i + 1)] = controlbox_data[i];
-        }
 
         config["Config"]["kp_steering"] = kp_steering_;
         config["Config"]["ki_steering"] = ki_steering_;
@@ -3652,25 +3827,27 @@ private:
     }
 };
 
-int main(int argc, char** argv)
+int main(int argc, char **argv)
 {
     rclcpp::init(argc, argv);
     std::shared_ptr<VisionCapture3> node_VisionCapture2;
 
-    try {
+    try
+    {
         node_VisionCapture2 = std::make_shared<VisionCapture3>();
 
         rclcpp::executors::MultiThreadedExecutor executor;
         executor.add_node(node_VisionCapture2);
         executor.spin();
-    } catch (const std::exception& e) {
+    }
+    catch (const std::exception &e)
+    {
         RCLCPP_ERROR(rclcpp::get_logger("vision_capture3"), "Failed to create VisionCapture3 node: %s", e.what());
         rclcpp::shutdown();
     }
 
-    if (node_VisionCapture2) {
+    if (node_VisionCapture2)
         node_VisionCapture2.reset();
-    }
 
     rclcpp::shutdown();
     return 0;

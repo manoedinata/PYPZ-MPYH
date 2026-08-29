@@ -21,8 +21,9 @@
 #define WIDTH 160
 #define HEIGHT 120
 
-class OnnxInferenceNode : public rclcpp::Node {
-public:
+class OnnxInferenceNode : public rclcpp::Node
+{
+  public:
     rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr pub_image_bgr;
     rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr pub_image_gray;
     rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr pub_image_mask;
@@ -64,15 +65,16 @@ public:
 
     std::vector<std::string> input_names_;
     std::vector<std::string> output_names_;
-    const char* input_name_;
-    const char* output_names_cstr_[2];
+    const char *input_name_;
+    const char *output_names_cstr_[2];
 
     HelpLogger logger;
 
     OnnxInferenceNode()
         : Node("OnnxInferenceNode")
     {
-        if (!logger.init()) {
+        if (!logger.init())
+        {
             RCLCPP_ERROR(this->get_logger(), "Failed to initialize logger");
             rclcpp::shutdown();
         }
@@ -96,18 +98,21 @@ public:
         this->get_parameter("use_temporal_model", use_temporal_model);
         model_path = "/home/iris/model.onnx";
 
-        if (use_temporal_model < 0 || use_temporal_model > 1) {
+        if (use_temporal_model < 0 || use_temporal_model > 1)
+        {
             RCLCPP_ERROR(this->get_logger(), "Invalid use_temporal_model value: %d. Must be 0 or 1.", use_temporal_model);
             rclcpp::shutdown();
         }
         RCLCPP_INFO(this->get_logger(), "use_temporal_model: %d", use_temporal_model);
 
-        if (!std::filesystem::exists(model_path)) {
+        if (!std::filesystem::exists(model_path))
+        {
             RCLCPP_ERROR(this->get_logger(), "Model file does not exist: %s", model_path.c_str());
             rclcpp::shutdown();
         }
 
-        if (!std::filesystem::exists(temporal_model_path)) {
+        if (!std::filesystem::exists(temporal_model_path))
+        {
             RCLCPP_ERROR(this->get_logger(), "Temporal model file does not exist: %s", temporal_model_path.c_str());
             rclcpp::shutdown();
         }
@@ -118,9 +123,8 @@ public:
         session_options_->SetIntraOpNumThreads(1);
         session_options_->SetGraphOptimizationLevel(GraphOptimizationLevel::ORT_ENABLE_ALL);
 
-        if (use_temporal_model) {
+        if (use_temporal_model)
             model_path = temporal_model_path;
-        }
 
         session_ = std::make_unique<Ort::Session>(*env_, model_path.c_str(), *session_options_);
         // Ambil input & output names
@@ -156,27 +160,30 @@ public:
 
     void callback_sub_image_bgr_rs(const sensor_msgs::msg::Image::SharedPtr msg)
     {
-        try {
+        try
+        {
             cv_bridge::CvImagePtr cv_ptr = cv_bridge::toCvCopy(msg, sensor_msgs::image_encodings::BGR8);
 
             image_bgr = cv_ptr->image.clone();
-        } catch (cv_bridge::Exception& e) {
+        }
+        catch (cv_bridge::Exception &e)
+        {
             RCLCPP_ERROR(this->get_logger(), "cv_bridge exception: %s", e.what());
         }
     }
 
     void callback_routine()
     {
-        if (image_bgr.empty()) {
+        if (image_bgr.empty())
+        {
             RCLCPP_WARN(this->get_logger(), "Image is empty");
             return;
         }
 
         // wait for 5 seconds to ensure the image is ready
         rclcpp::Time current_time = clock->now();
-        if (current_time.seconds() - start_time.seconds() < 5.0) {
+        if (current_time.seconds() - start_time.seconds() < 5.0)
             return;
-        }
 
         cv::Mat frame_bgr = image_bgr.clone();
         cv::Mat frame;
@@ -228,28 +235,32 @@ public:
     }
 
     void
-    temporal_steering_speed(const cv::Mat& frame)
+    temporal_steering_speed(const cv::Mat &frame)
     {
-        float* speed_ptr = nullptr;
-        float* steering_ptr = nullptr;
+        float *speed_ptr = nullptr;
+        float *steering_ptr = nullptr;
 
         std::vector<float> input_tensor_values(SEQ_LEN * HEIGHT * WIDTH * 3);
 
         frame_queue.push_back(frame.clone());
-        if (frame_queue.size() < SEQ_LEN) {
+        if (frame_queue.size() < SEQ_LEN)
+        {
             RCLCPP_INFO(this->get_logger(), "Waiting for enough frames (%lu/%d)...", frame_queue.size(), SEQ_LEN);
             return; // belum cukup frame
-        } else if (frame_queue.size() > SEQ_LEN) {
+        }
+        else if (frame_queue.size() > SEQ_LEN)
+        {
             frame_queue.pop_front(); // jaga agar hanya 10 frame
         }
 
-        float* ptr = input_tensor_values.data();
-        for (const auto& f : frame_queue) {
+        float *ptr = input_tensor_values.data();
+        for (const auto &f : frame_queue)
+        {
             memcpy(ptr, f.data, HEIGHT * WIDTH * 3 * sizeof(float));
             ptr += HEIGHT * WIDTH * 3;
         }
         // Tensor dengan shape: (1, SEQ_LEN, HEIGHT, WIDTH, 3)
-        std::array<int64_t, 5> input_shape = { 1, SEQ_LEN, HEIGHT, WIDTH, 3 };
+        std::array<int64_t, 5> input_shape = {1, SEQ_LEN, HEIGHT, WIDTH, 3};
         Ort::Value input_tensor = Ort::Value::CreateTensor<float>(
             memory_info,
             input_tensor_values.data(),
@@ -258,28 +269,28 @@ public:
             input_shape.size());
 
         // Jalankan inferensi (2 output)
-        auto output_tensors = session_->Run(Ort::RunOptions { nullptr },
-            &input_name_, &input_tensor, 1,
-            output_names_cstr_, 2);
+        auto output_tensors = session_->Run(Ort::RunOptions{nullptr},
+                                            &input_name_, &input_tensor, 1,
+                                            output_names_cstr_, 2);
 
         // Ambil hasil
         speed_ptr = output_tensors[1].GetTensorMutableData<float>();
         steering_ptr = output_tensors[0].GetTensorMutableData<float>();
 
-        speed = speed_ptr[0]; // Ambil nilai speed dari output
+        speed = speed_ptr[0];       // Ambil nilai speed dari output
         steering = steering_ptr[0]; // Ambil nilai steering dari output
     }
 
-    void normal_steering_speed(const cv::Mat& frame)
+    void normal_steering_speed(const cv::Mat &frame)
     {
-        float* speed_ptr = nullptr;
-        float* steering_ptr = nullptr;
+        float *speed_ptr = nullptr;
+        float *steering_ptr = nullptr;
 
         std::vector<float> input_tensor_values(WIDTH * HEIGHT * 3);
         memcpy(input_tensor_values.data(), frame.data, sizeof(float) * input_tensor_values.size());
 
         // Bentuk input shape: {1, HEIGHT, WIDTH, 3}
-        std::array<int64_t, 4> input_shape = { 1, HEIGHT, WIDTH, 3 };
+        std::array<int64_t, 4> input_shape = {1, HEIGHT, WIDTH, 3};
 
         // Buat tensor ONNX
         Ort::Value input_tensor = Ort::Value::CreateTensor<float>(
@@ -290,22 +301,22 @@ public:
             input_shape.size());
 
         // Jalankan inferensi (2 output)
-        auto output_tensors = session_->Run(Ort::RunOptions { nullptr },
-            &input_name_, &input_tensor, 1,
-            output_names_cstr_, 2);
+        auto output_tensors = session_->Run(Ort::RunOptions{nullptr},
+                                            &input_name_, &input_tensor, 1,
+                                            output_names_cstr_, 2);
 
         // Ambil hasil
         speed_ptr = output_tensors[0].GetTensorMutableData<float>();
         steering_ptr = output_tensors[1].GetTensorMutableData<float>();
 
-        speed = speed_ptr[0]; // Ambil nilai speed dari output
+        speed = speed_ptr[0];       // Ambil nilai speed dari output
         steering = steering_ptr[0]; // Ambil nilai steering dari output
 
         // logger.info("Speed: %.2f, Steering: %.2f", speed, steering);
     }
 };
 
-int main(int argc, char** argv)
+int main(int argc, char **argv)
 {
     rclcpp::init(argc, argv);
 

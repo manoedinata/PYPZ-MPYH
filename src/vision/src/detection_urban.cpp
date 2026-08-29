@@ -34,8 +34,9 @@
 
 using namespace std::chrono_literals;
 
-class DetectionUrbanNode : public rclcpp::Node {
-private:
+class DetectionUrbanNode : public rclcpp::Node
+{
+  private:
     // -------------------------------------------------
     // Transform
     // -------------------------------------------------
@@ -122,15 +123,14 @@ private:
     // -------------------------------------------------
     // Shutdown handling
     // -------------------------------------------------
-    std::atomic<bool> shutdown_requested_ { false };
+    std::atomic<bool> shutdown_requested_{false};
 
-public:
+  public:
     DetectionUrbanNode()
-        : Node("detection_urban_node")
-        , tf_buffer_(this->get_clock())
-        , tf_listener_(tf_buffer_)
+        : Node("detection_urban_node"), tf_buffer_(this->get_clock()), tf_listener_(tf_buffer_)
     {
-        if (!logger.init()) {
+        if (!logger.init())
+        {
             RCLCPP_ERROR(this->get_logger(), "Failed to initialize logger");
             rclcpp::shutdown();
         }
@@ -172,8 +172,8 @@ public:
         lookahead_near_pixel_ = static_cast<int>(lookahead_near_meter_ * meter_to_pixel_);
 
         logger.info("Lookahead %.2f m (%d px) far, %.2f m (%d px) near",
-            lookahead_far_meter_, lookahead_far_pixel_,
-            lookahead_near_meter_, lookahead_near_pixel_);
+                    lookahead_far_meter_, lookahead_far_pixel_,
+                    lookahead_near_meter_, lookahead_near_pixel_);
 
         // --------------------------------------------------
         // Create subscribers callback groups
@@ -258,13 +258,17 @@ public:
         // --------------------------------------------------
         // Wait for TF to be initialized
         // --------------------------------------------------
-        while (!tf_is_initialized) {
+        while (!tf_is_initialized)
+        {
             rclcpp::sleep_for(std::chrono::seconds(1));
-            try {
+            try
+            {
                 tf_camera_base_ = tf_buffer_.lookupTransform("base_link", "camera_color_optical_frame", tf2::TimePointZero);
                 tf_base_camera_ = tf_buffer_.lookupTransform("camera_color_optical_frame", "base_link", tf2::TimePointZero);
                 tf_is_initialized = true;
-            } catch (const tf2::TransformException& ex) {
+            }
+            catch (const tf2::TransformException &ex)
+            {
                 logger.warn("TF not ready: %s", ex.what());
                 rclcpp::sleep_for(std::chrono::milliseconds(100));
             }
@@ -279,12 +283,11 @@ public:
     {
     }
 
-private:
+  private:
     void callback_tim_routine()
     {
-        if (shutdown_requested_) {
+        if (shutdown_requested_)
             return;
-        }
 
         // ==================================================================
         //                        DEBUG DETECTION URBAN
@@ -300,7 +303,8 @@ private:
     void callback_sub_camera_color(const sensor_msgs::msg::Image::SharedPtr msg)
     {
         std::lock_guard<std::mutex> lock(image_mutex_);
-        try {
+        try
+        {
             auto cv_ptr = cv_bridge::toCvCopy(msg, sensor_msgs::image_encodings::BGR8);
             color_image_ = cv_ptr->image.clone();
             // ==================================================================
@@ -312,7 +316,9 @@ private:
             last_time = start_time;
             logger.info("Subcsribe image color elapsed time: %.4f seconds -> %.2f hz", elapsed_time, 1 / elapsed_time);
             // ==================================================================
-        } catch (const cv_bridge::Exception& e) {
+        }
+        catch (const cv_bridge::Exception &e)
+        {
             logger.error("Failed to convert camera color image: %s", e.what());
         }
     }
@@ -325,7 +331,8 @@ private:
     void callback_sub_camera_depth(const sensor_msgs::msg::Image::SharedPtr msg)
     {
         std::lock_guard<std::mutex> lock(image_mutex_);
-        try {
+        try
+        {
             auto cv_ptr = cv_bridge::toCvCopy(msg, sensor_msgs::image_encodings::TYPE_16UC1);
             depth_image_ = cv_ptr->image.clone();
             // ==================================================================
@@ -337,7 +344,9 @@ private:
             last_time = start_time;
             logger.info("Subcsribe image depth elapsed time: %.4f seconds -> %.2f hz", elapsed_time, 1 / elapsed_time);
             // ==================================================================
-        } catch (const cv_bridge::Exception& e) {
+        }
+        catch (const cv_bridge::Exception &e)
+        {
             logger.error("Failed to convert camera depth image: %s", e.what());
         }
     }
@@ -361,9 +370,8 @@ private:
         // Publish the controlbox data
         std_msgs::msg::Int16MultiArray controlbox_msg;
         controlbox_msg.data.resize(controlbox_size);
-        for (size_t i = 0; i < controlbox_size; ++i) {
+        for (size_t i = 0; i < controlbox_size; ++i)
             controlbox_msg.data[i] = controlbox_data[i];
-        }
         pub_controlbox_->publish(controlbox_msg);
 
         std_msgs::msg::Float32MultiArray config_vision_msg;
@@ -394,9 +402,8 @@ private:
 
     void callback_sub_controlbox(const std_msgs::msg::Int16MultiArray::SharedPtr msg)
     {
-        for (size_t i = 0; i < msg->data.size(); ++i) {
+        for (size_t i = 0; i < msg->data.size(); ++i)
             controlbox_data[i] = msg->data[i];
-        }
 
         // Save the configuration to file
         saveConfig();
@@ -409,9 +416,8 @@ private:
 
         YAML::Node config = YAML::LoadFile(config_file);
 
-        for (size_t i = 0; i < controlbox_size; ++i) {
+        for (size_t i = 0; i < controlbox_size; ++i)
             controlbox_data[i] = config["Config"]["slider_" + std::to_string(i + 1)].as<int>();
-        }
 
         kp_steering_ = config["Config"]["kp_steering"].as<float>();
         ki_steering_ = config["Config"]["ki_steering"].as<float>();
@@ -422,9 +428,8 @@ private:
         // publish the controlbox data
         std_msgs::msg::Int16MultiArray controlbox_msg;
         controlbox_msg.data.resize(controlbox_size);
-        for (size_t i = 0; i < controlbox_size; ++i) {
+        for (size_t i = 0; i < controlbox_size; ++i)
             controlbox_msg.data[i] = controlbox_data[i];
-        }
         pub_controlbox_->publish(controlbox_msg);
 
         std_msgs::msg::Float32MultiArray config_vision_msg;
@@ -445,9 +450,8 @@ private:
 
         YAML::Node config;
         config["Config"]["slider_size"] = controlbox_size;
-        for (size_t i = 0; i < controlbox_size; ++i) {
+        for (size_t i = 0; i < controlbox_size; ++i)
             config["Config"]["slider_" + std::to_string(i + 1)] = controlbox_data[i];
-        }
 
         config["Config"]["kp_steering"] = kp_steering_;
         config["Config"]["ki_steering"] = ki_steering_;
@@ -461,7 +465,7 @@ private:
     }
 };
 
-int main(int argc, char** argv)
+int main(int argc, char **argv)
 {
     rclcpp::init(argc, argv);
 

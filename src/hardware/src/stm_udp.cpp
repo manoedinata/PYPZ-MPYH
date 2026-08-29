@@ -62,8 +62,9 @@ T constrain(T value, T min_val, T max_val)
     return std::max(min_val, std::min(value, max_val));
 }
 
-class STM_UDP : public rclcpp::Node {
-private:
+class STM_UDP : public rclcpp::Node
+{
+  private:
     // -------------------------------------------------
     // Transform
     // -------------------------------------------------
@@ -106,10 +107,10 @@ private:
      * @note bind - give socket FD the local address ADDR (which is LEN bytes long)
      */
     int socket_;
-    struct sockaddr_in server_; // STM Address (Need to configure to send)
-    struct sockaddr_in any_addr_; // Any Address sending to this PC
+    struct sockaddr_in server_;                  // STM Address (Need to configure to send)
+    struct sockaddr_in any_addr_;                // Any Address sending to this PC
     socklen_t any_addr_len_ = sizeof(any_addr_); // Lenght of Any Address
-    struct sockaddr_in client_; // PC Address (Need to configure to recv)
+    struct sockaddr_in client_;                  // PC Address (Need to configure to recv)
 
     //--File Descriptor
     fd_set readfds;
@@ -127,15 +128,16 @@ private:
     uint8_t target_enable = 0;
     int16_t target_pwm_wheel = 0;
     int16_t target_steering = 1000; // Derajat target = target_steering * 0.01
-    // -------------------------------------------------
-    // Parameters
-    // -------------------------------------------------
+                                    // -------------------------------------------------
+                                    // Parameters
+                                    // -------------------------------------------------
 
-public:
+  public:
     STM_UDP()
         : Node("stm_udp")
     {
-        if (!logger.init()) {
+        if (!logger.init())
+        {
             RCLCPP_ERROR(this->get_logger(), "Failed to initialize logger");
             rclcpp::shutdown();
         }
@@ -202,9 +204,9 @@ public:
         logger.info("STM_UDP node initialized with multithreading");
     }
 
-    ~STM_UDP() { }
+    ~STM_UDP() {}
 
-private:
+  private:
     void callback_tim_send()
     {
         // logger.info("Sending data over UDP");
@@ -265,13 +267,12 @@ private:
         struct timeval tv;
         tv.tv_sec = 0;
         tv.tv_usec = 2000;
-        setsockopt(socket_, SOL_SOCKET, SO_RCVTIMEO, (const char*)&tv, sizeof tv);
+        setsockopt(socket_, SOL_SOCKET, SO_RCVTIMEO, (const char *)&tv, sizeof tv);
 
         // Bind socket and checking is binding success
-        bind(socket_, (struct sockaddr*)&client_, sizeof(client_));
-        if (socket_ < 0) {
+        bind(socket_, (struct sockaddr *)&client_, sizeof(client_));
+        if (socket_ < 0)
             logger.error("STM UDP ERROR : Binding Failed");
-        }
 
 #endif
     }
@@ -288,42 +289,48 @@ private:
 
         toogle_button_2 = falling_edge(button_2);
 
-        if (toogle_button_2) {
+        if (toogle_button_2)
+        {
             init = 1;
             target_enable = 1;
             // ringtone_1();
-        } else {
-            if (!init) {
-                target_enable = 1;
-            } else {
-                target_enable = 0;
-                target_pwm_wheel = 0;
-                target_steering = 1000;
-            }
+        }
+        else if (!init)
+        {
+            target_enable = 1;
+        }
+        else
+        {
+            target_enable = 0;
+            target_pwm_wheel = 0;
+            target_steering = 1000;
         }
 
-        if (buzzer_from_urban) {
+        if (buzzer_from_urban)
+        {
             ringtone_cnt(cnt_buzzer_urban + 1);
             buzzer_from_urban = 0;
-        } else {
+        }
+        else
+        {
         }
 
-        if (buzzer != 1) {
-            if (button_1) {
+        if (buzzer != 1)
+        {
+            if (button_1)
                 buzzer = 1;
-            } else {
+            else
                 buzzer = 0;
-            }
         }
 
         static int counter_buzzer = 0;
-        if (buzzer) {
+        if (buzzer)
             counter_buzzer++;
-        } else {
+        else
             counter_buzzer = 0;
-        }
 
-        if (counter_buzzer > 100) {
+        if (counter_buzzer > 100)
+        {
             buzzer = 0;
             counter_buzzer = 0;
         }
@@ -337,7 +344,7 @@ private:
         memcpy(send_buffer + 8, &buzzer, sizeof(buzzer));
         //=================================================================
         // logger.info("STM UDP Sending : Target PWM Wheel: %d, Target Steering: %d, Buzzer: %d", target_pwm_wheel, target_steering, buzzer);
-        sendto(socket_, send_buffer, 9, 0, (struct sockaddr*)&server_, sizeof(server_));
+        sendto(socket_, send_buffer, 9, 0, (struct sockaddr *)&server_, sizeof(server_));
 
         std_msgs::msg::Int8 msg_button;
         int8_t button = 0;
@@ -359,11 +366,11 @@ private:
         static int8_t prev_button = 0;
         static int8_t rising_edge = 0;
 
-        if (button == 1 && prev_button == 0) {
+        if (button == 1 && prev_button == 0)
+        {
             rising_edge = !rising_edge;
-            if (buzzer) {
+            if (buzzer)
                 buzzer = 0;
-            }
         }
 
         prev_button = button;
@@ -375,11 +382,11 @@ private:
         static int8_t prev_button = 0;
         static int8_t falling_edge = 0;
 
-        if (button == 0 && prev_button == 1) {
+        if (button == 0 && prev_button == 1)
+        {
             falling_edge = !falling_edge;
-            if (buzzer) {
+            if (buzzer)
                 buzzer = 0;
-            }
         }
 
         prev_button = button;
@@ -393,11 +400,13 @@ private:
 
         counter++;
 
-        switch (state) {
+        switch (state)
+        {
         case 0: // Bip 1
             if (counter == 1)
                 buzzer = 1;
-            if (counter == 10) {
+            if (counter == 10)
+            {
                 buzzer = 0;
                 state = 1;
                 counter = 0;
@@ -405,10 +414,10 @@ private:
             break;
 
         case 1: // Bip 2
-            if (counter == 10) {
+            if (counter == 10)
                 buzzer = 1;
-            }
-            if (counter == 20) {
+            if (counter == 20)
+            {
                 buzzer = 0;
                 state = 2;
                 counter = 0;
@@ -416,7 +425,8 @@ private:
             break;
 
         case 2: // Delay setelah 2 bip
-            if (counter >= 1000) {
+            if (counter >= 1000)
+            {
                 state = 0;
                 counter = 0;
             }
@@ -432,32 +442,34 @@ private:
 
         counter++;
 
-        switch (state) {
+        switch (state)
+        {
         case 0: // Start bip
-            if (counter == 1) {
+            if (counter == 1)
                 buzzer = 1;
-            }
-            if (counter == 10) {
+            if (counter == 10)
+            {
                 buzzer = 0;
                 bip_count++;
                 counter = 0;
-                if (bip_count < cnt) {
+                if (bip_count < cnt)
                     state = 1; // Delay between bips
-                } else {
+                else
                     state = 2; // All bips done, long delay
-                }
             }
             break;
 
         case 1: // Delay between bips
-            if (counter == 10) {
+            if (counter == 10)
+            {
                 state = 0;
                 counter = 0;
             }
             break;
 
         case 2: // Delay after all bips
-            if (counter >= 100) {
+            if (counter >= 100)
+            {
                 state = 0;
                 counter = 0;
                 bip_count = 0;
@@ -470,16 +482,17 @@ private:
     {
         static uint16_t counter = 0;
         static uint8_t toogle = 0;
-        if (!target_enable) {
+        if (!target_enable)
+        {
             counter++;
-            if (counter > 400) {
+            if (counter > 400)
+            {
                 toogle = !toogle;
 
-                if (toogle) {
+                if (toogle)
                     counter = 200;
-                } else {
+                else
                     counter = 0;
-                }
 
                 buzzer = !buzzer;
             }
@@ -488,23 +501,26 @@ private:
 
     void recv_udp()
     {
-        int8_t recv_len = recvfrom(socket_, recv_buffer, 64, 0, (struct sockaddr*)&any_addr_, &any_addr_len_);
-        if (recv_len == -1) {
-            if (errno != EAGAIN && errno != EWOULDBLOCK) {
+        int8_t recv_len = recvfrom(socket_, recv_buffer, 64, 0, (struct sockaddr *)&any_addr_, &any_addr_len_);
+        if (recv_len == -1)
+        {
+            if (errno != EAGAIN && errno != EWOULDBLOCK)
                 logger.error("errno : %d, error : %s", errno, strerror(errno));
-            }
             return;
         }
 
         int16_t encoder = 0;
 
-        if (recv_len > 0 && recv_buffer[0] == 'i' && recv_buffer[1] == 't' && recv_buffer[2] == 's') {
+        if (recv_len > 0 && recv_buffer[0] == 'i' && recv_buffer[1] == 't' && recv_buffer[2] == 's')
+        {
             memcpy(&encoder, recv_buffer + 3, sizeof(encoder));
             memcpy(&button_1, recv_buffer + 5, sizeof(button_1));
             memcpy(&button_2, recv_buffer + 6, sizeof(button_2));
 
             // logger.info("STM UDP Received : Encoder: %d, Button 1: %d, Button 2: %d", encoder, button_1, button_2);
-        } else {
+        }
+        else
+        {
             logger.info("STM UDP Received : Invalid Data");
         }
 
@@ -515,25 +531,27 @@ private:
     }
 };
 
-int main(int argc, char** argv)
+int main(int argc, char **argv)
 {
     rclcpp::init(argc, argv);
     std::shared_ptr<STM_UDP> node_STM_UDP;
 
-    try {
+    try
+    {
         node_STM_UDP = std::make_shared<STM_UDP>();
 
         rclcpp::executors::MultiThreadedExecutor executor;
         executor.add_node(node_STM_UDP);
         executor.spin();
-    } catch (const std::exception& e) {
+    }
+    catch (const std::exception &e)
+    {
         RCLCPP_ERROR(rclcpp::get_logger("stm_udp"), "Failed to create STM_UDP node: %s", e.what());
         rclcpp::shutdown();
     }
 
-    if (node_STM_UDP) {
+    if (node_STM_UDP)
         node_STM_UDP.reset();
-    }
 
     rclcpp::shutdown();
     return 0;

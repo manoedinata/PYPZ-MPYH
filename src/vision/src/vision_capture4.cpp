@@ -1,11 +1,10 @@
 #include "vision/vision_capture4.hpp"
 
 VisionCapture4::VisionCapture4()
-    : Node("vision_capture4")
-    , tf_buffer_(this->get_clock())
-    , tf_listener_(tf_buffer_)
+    : Node("vision_capture4"), tf_buffer_(this->get_clock()), tf_listener_(tf_buffer_)
 {
-    if (!logger.init()) {
+    if (!logger.init())
+    {
         RCLCPP_ERROR(this->get_logger(), "Failed to initialize logger");
         rclcpp::shutdown();
     }
@@ -79,24 +78,26 @@ VisionCapture4::VisionCapture4()
     //             lookahead_far_meter_, lookahead_far_pixel_,
     //             lookahead_near_meter_, lookahead_near_pixel_);
 
-    if (!use_realsense_ros) {
+    if (!use_realsense_ros)
+    {
         // --------------------------------------------------
         // Initialize RealSense context and check for devices
         // --------------------------------------------------
         rs2::context ctx;
         rs2::device_list devices = ctx.query_devices();
-        if (devices.size() == 0) {
+        if (devices.size() == 0)
+        {
             std::cerr << "No RealSense devices found." << std::endl;
             return;
         }
 
-        for (const auto& dev : devices) {
+        for (const auto &dev : devices)
             print_device_info(dev);
-        }
         // --------------------------------------------------
         // Configure and start RealSense pipeline
         // --------------------------------------------------
-        try {
+        try
+        {
             cfg_.enable_stream(RS2_STREAM_COLOR, 640, 360, RS2_FORMAT_BGR8, 60);
             cfg_.enable_stream(RS2_STREAM_DEPTH, 640, 360, RS2_FORMAT_Z16, 60);
 
@@ -104,7 +105,8 @@ VisionCapture4::VisionCapture4()
 
             auto device = pipe_.get_active_profile().get_device();
             auto color_sensor = device.first<rs2::color_sensor>();
-            if (color_sensor) {
+            if (color_sensor)
+            {
                 color_sensor.set_option(RS2_OPTION_ENABLE_AUTO_EXPOSURE, 1.0f);
                 color_sensor.set_option(RS2_OPTION_ENABLE_AUTO_WHITE_BALANCE, 1.0f);
                 logger.info("Auto Exposure: %s", color_sensor.get_option(RS2_OPTION_ENABLE_AUTO_EXPOSURE) ? "Enabled" : "Disabled");
@@ -114,7 +116,9 @@ VisionCapture4::VisionCapture4()
             pipeline_started_ = true;
 
             logger.info("RealSense pipeline started successfully");
-        } catch (const rs2::error& e) {
+        }
+        catch (const rs2::error &e)
+        {
             logger.error("Failed to start RealSense pipeline: %s", e.what());
             return;
         }
@@ -149,7 +153,8 @@ VisionCapture4::VisionCapture4()
     // Create subscribers
     // --------------------------------------------------
 
-    if (use_realsense_ros) {
+    if (use_realsense_ros)
+    {
         //!==================================================================
         //!                     REALSENSE ROS SUBSCRIBERS
         //!==================================================================
@@ -232,7 +237,8 @@ VisionCapture4::VisionCapture4()
     // --------------------------------------------------
     // Create timer
     // --------------------------------------------------
-    if (!use_realsense_ros) {
+    if (!use_realsense_ros)
+    {
         logger.info("Using RealSense SDK for image capture");
         timer_routine_ = this->create_wall_timer(
             std::chrono::milliseconds(10),
@@ -243,7 +249,9 @@ VisionCapture4::VisionCapture4()
             std::chrono::milliseconds(1),
             std::bind(&VisionCapture4::callback_tim_pointcloud_routine, this),
             tim_routine_group_);
-    } else {
+    }
+    else
+    {
         logger.info("Using RealSense ROS for image capture");
     }
     timer_img_routine_ = this->create_wall_timer(
@@ -253,9 +261,11 @@ VisionCapture4::VisionCapture4()
     // --------------------------------------------------
     // Wait for TF to be initialized
     // --------------------------------------------------
-    while (!tf_is_initialized) {
+    while (!tf_is_initialized)
+    {
         rclcpp::sleep_for(std::chrono::seconds(1));
-        try {
+        try
+        {
             tf_camera_base_ = tf_buffer_.lookupTransform("base_link", "camera_color_optical_frame", tf2::TimePointZero);
             tf_base_camera_ = tf_buffer_.lookupTransform("camera_color_optical_frame", "base_link", tf2::TimePointZero);
 
@@ -264,8 +274,8 @@ VisionCapture4::VisionCapture4()
             logger.info("  frame_id: %s", tf_camera_base_.header.frame_id.c_str());
             logger.info("  child_frame_id: %s", tf_camera_base_.child_frame_id.c_str());
             logger.info("  stamp: %u.%u",
-                tf_camera_base_.header.stamp.sec,
-                tf_camera_base_.header.stamp.nanosec);
+                        tf_camera_base_.header.stamp.sec,
+                        tf_camera_base_.header.stamp.nanosec);
 
             logger.info("Translation:");
             logger.info("  x = %.6f", tf_camera_base_.transform.translation.x);
@@ -283,8 +293,8 @@ VisionCapture4::VisionCapture4()
             logger.info("  frame_id: %s", tf_base_camera_.header.frame_id.c_str());
             logger.info("  child_frame_id: %s", tf_base_camera_.child_frame_id.c_str());
             logger.info("  stamp: %u.%u",
-                tf_base_camera_.header.stamp.sec,
-                tf_base_camera_.header.stamp.nanosec);
+                        tf_base_camera_.header.stamp.sec,
+                        tf_base_camera_.header.stamp.nanosec);
 
             logger.info("Translation:");
             logger.info("  x = %.6f", tf_base_camera_.transform.translation.x);
@@ -327,7 +337,8 @@ VisionCapture4::VisionCapture4()
             //   z = -0.307821
             //   w = -0.307818
 
-            if (use_realsense_ros) {
+            if (use_realsense_ros)
+            {
                 tf_camera_base_.header.frame_id = "base_link";
                 tf_camera_base_.transform.translation.x = 0.114000;
                 tf_camera_base_.transform.translation.y = 0.000000;
@@ -348,7 +359,9 @@ VisionCapture4::VisionCapture4()
             }
 
             tf_is_initialized = true;
-        } catch (const tf2::TransformException& ex) {
+        }
+        catch (const tf2::TransformException &ex)
+        {
             logger.warn("TF not ready: %s", ex.what());
             rclcpp::sleep_for(std::chrono::milliseconds(100));
         }
@@ -375,12 +388,16 @@ void VisionCapture4::callback_tim_img_routine()
     // ==================================================================
     //                    AVOID EXECUTION IF NOT NEEDED
     // ==================================================================
-    if (use_realsense_ros) {
-        if (image_received_ && depth_received_) {
+    if (use_realsense_ros)
+    {
+        if (image_received_ && depth_received_)
+        {
             image_received_ = 0;
             depth_received_ = 0;
             img_sync_ = 1;
-        } else {
+        }
+        else
+        {
             return;
         }
     }
@@ -403,11 +420,13 @@ void VisionCapture4::callback_tim_img_routine()
 
     // Get the latest images from the RealSense camera
 
-    if (!use_realsense_ros) {
+    if (!use_realsense_ros)
+    {
         {
             std::lock_guard<std::mutex> lock(image_mutex_);
 
-            if (color_image_.empty() || depth_image_.empty()) {
+            if (color_image_.empty() || depth_image_.empty())
+            {
                 logger.warn("Images not yet available, skipping overlay generation");
                 return;
             }
@@ -419,10 +438,11 @@ void VisionCapture4::callback_tim_img_routine()
 
             img_sync_ = 0;
         }
-    } else {
-        if (color_image_.empty() || depth_image_.empty()) {
+    }
+    else
+    {
+        if (color_image_.empty() || depth_image_.empty())
             return;
-        }
 
         {
             std::lock_guard<std::mutex> lock(image_mutex_);
@@ -442,19 +462,21 @@ void VisionCapture4::callback_tim_img_routine()
     // Realsense SDK intrinsics
     // Camera intrinsics: fx=320.78, fy=320.36, ppx=326.78, ppy=180.46, coeffs=[-0.0538, 0.0629, -0.0005, 0.0014, -0.0199]
 
-    if (use_realsense_ros) {
+    if (use_realsense_ros)
+    {
         intrinsics.fx = 320.78f;
         intrinsics.fy = 320.36f;
         intrinsics.ppx = 326.78f;
         intrinsics.ppy = 180.46f;
         intrinsics.coeffs[0] = -0.0538f; // k1
-        intrinsics.coeffs[1] = 0.0629f; // k2
+        intrinsics.coeffs[1] = 0.0629f;  // k2
         intrinsics.coeffs[2] = -0.0005f; // p1
-        intrinsics.coeffs[3] = 0.0014f; // p2
+        intrinsics.coeffs[3] = 0.0014f;  // p2
         intrinsics.coeffs[4] = -0.0199f; // k3
     }
 
-    if (use_realsense_ros) {
+    if (use_realsense_ros)
+    {
         static uint8_t has_set_frequency = 0;
         static uint8_t has_set_exposure = 0;
         static uint8_t has_set_white_balance = 0;
@@ -539,7 +561,7 @@ void VisionCapture4::callback_tim_img_routine()
             std::swap(controlbox_data[2], controlbox_data[5]);
 
         cv::inRange(hsv_image, cv::Scalar(controlbox_data[0], controlbox_data[1], controlbox_data[2]),
-            cv::Scalar(controlbox_data[3], controlbox_data[4], controlbox_data[5]), color_thresh1);
+                    cv::Scalar(controlbox_data[3], controlbox_data[4], controlbox_data[5]), color_thresh1);
     }
     {
         if (controlbox_data[6] > controlbox_data[9])
@@ -550,7 +572,7 @@ void VisionCapture4::callback_tim_img_routine()
             std::swap(controlbox_data[8], controlbox_data[11]);
 
         cv::inRange(hsv_image, cv::Scalar(controlbox_data[6], controlbox_data[7], controlbox_data[8]),
-            cv::Scalar(controlbox_data[9], controlbox_data[10], controlbox_data[11]), color_thresh2);
+                    cv::Scalar(controlbox_data[9], controlbox_data[10], controlbox_data[11]), color_thresh2);
     }
     {
         if (controlbox_data[12] > controlbox_data[15])
@@ -561,7 +583,7 @@ void VisionCapture4::callback_tim_img_routine()
             std::swap(controlbox_data[14], controlbox_data[17]);
 
         cv::inRange(yuv_image, cv::Scalar(controlbox_data[12], controlbox_data[13], controlbox_data[14]),
-            cv::Scalar(controlbox_data[15], controlbox_data[16], controlbox_data[17]), color_thresh3);
+                    cv::Scalar(controlbox_data[15], controlbox_data[16], controlbox_data[17]), color_thresh3);
     }
 
     cv::morphologyEx(color_thresh3, color_thresh3, cv::MORPH_OPEN, cv::Mat(), cv::Point(-1, -1), 3);
@@ -570,18 +592,18 @@ void VisionCapture4::callback_tim_img_routine()
     // Transform points in 3d to matrix image using project realsense function
     // Define ground plane corners in world coordinates (base_link frame)
     // These points define a rectangular area on the ground that will be transformed to BEV
-    float ground_width = 1.0f; // 1 meter wide (-0.5 to +0.5)
+    float ground_width = 1.0f;  // 1 meter wide (-0.5 to +0.5)
     float ground_length = 2.0f; // 2 meters deep (0.5 to 2.5)
     float ground_height = 0.0f; // Ground level
 
     // 3D points defining the ground plane rectangle in base_link coordinates
-    float point_3d_left_bottom[3] = { 0.5f, -ground_width / 2, ground_height }; // Close left
-    float point_3d_right_bottom[3] = { 0.5f, ground_width / 2, ground_height }; // Close right
-    float point_3d_left_top[3] = { 0.5f + ground_length, -ground_width / 2, ground_height }; // Far left
-    float point_3d_right_top[3] = { 0.5f + ground_length, ground_width / 2, ground_height }; // Far right
+    float point_3d_left_bottom[3] = {0.5f, -ground_width / 2, ground_height};              // Close left
+    float point_3d_right_bottom[3] = {0.5f, ground_width / 2, ground_height};              // Close right
+    float point_3d_left_top[3] = {0.5f + ground_length, -ground_width / 2, ground_height}; // Far left
+    float point_3d_right_top[3] = {0.5f + ground_length, ground_width / 2, ground_height}; // Far right
 
-    float point_3d_look_ahead_far[3] = { 1.0f, 0.0f, ground_height }; // Look ahead point
-    float point_3d_look_ahead_near[3] = { 0.5f, 0.0f, ground_height }; // Look ahead point
+    float point_3d_look_ahead_far[3] = {1.0f, 0.0f, ground_height};  // Look ahead point
+    float point_3d_look_ahead_near[3] = {0.5f, 0.0f, ground_height}; // Look ahead point
 
     float camera_point_left_bottom[3], camera_point_right_bottom[3];
     float camera_point_left_top[3], camera_point_right_top[3];
@@ -629,8 +651,8 @@ void VisionCapture4::callback_tim_img_routine()
     cv::putText(realsense_projection, camera_size, cv::Point(10, 30), cv::FONT_HERSHEY_SIMPLEX, 0.7, cv::Scalar(200), 2);
 
     // Draw filled polygon instead of lines
-    std::vector<cv::Point> polygon_points = { left_bottom, right_bottom, right_top, left_top };
-    cv::fillPoly(realsense_projection, std::vector<std::vector<cv::Point>> { polygon_points }, cv::Scalar(255));
+    std::vector<cv::Point> polygon_points = {left_bottom, right_bottom, right_top, left_top};
+    cv::fillPoly(realsense_projection, std::vector<std::vector<cv::Point>>{polygon_points}, cv::Scalar(255));
 
     // Define source points (corners of the projected ground rectangle)
     std::vector<cv::Point2f> src_points;
@@ -645,8 +667,8 @@ void VisionCapture4::callback_tim_img_routine()
     std::vector<cv::Point2f> dst_points;
     dst_points.push_back(cv::Point2f(300, bev_height_ - 50)); // left_bottom -> bottom_right
     dst_points.push_back(cv::Point2f(100, bev_height_ - 50)); // right_bottom -> bottom_left
-    dst_points.push_back(cv::Point2f(300, 50)); // left_top -> top_right
-    dst_points.push_back(cv::Point2f(100, 50)); // right_top -> top_left
+    dst_points.push_back(cv::Point2f(300, 50));               // left_top -> top_right
+    dst_points.push_back(cv::Point2f(100, 50));               // right_top -> top_left
 
     // Calculate perspective transformation matrix
     cv::Mat perspective_matrix = cv::getPerspectiveTransform(src_points, dst_points);
@@ -684,7 +706,8 @@ void VisionCapture4::callback_tim_img_routine()
 
     static int8_t counter_publish = 0;
 
-    if (counter_publish++ > 5) {
+    if (counter_publish++ > 5)
+    {
         counter_publish = 0;
 
         // -- Publish the overlay image
@@ -787,9 +810,8 @@ void VisionCapture4::callback_sub_initial(const std_msgs::msg::Int8::SharedPtr m
     // Publish the controlbox data
     std_msgs::msg::Int16MultiArray controlbox_msg;
     controlbox_msg.data.resize(controlbox_size);
-    for (size_t i = 0; i < controlbox_size; ++i) {
+    for (size_t i = 0; i < controlbox_size; ++i)
         controlbox_msg.data[i] = controlbox_data[i];
-    }
     pub_controlbox_->publish(controlbox_msg);
 
     std_msgs::msg::Float32MultiArray config_vision_msg;
@@ -845,8 +867,7 @@ void VisionCapture4::callback_sub_initial(const std_msgs::msg::Int8::SharedPtr m
         edge_kiri_default,
         edge_kanan_default,
         edge_kiri_anomali,
-        edge_kanan_anomali
-    };
+        edge_kanan_anomali};
 
     pub_config_vision_->publish(config_vision_msg);
 }
@@ -910,7 +931,8 @@ void VisionCapture4::callback_sub_vision_config(const std_msgs::msg::Float32Mult
     // lookahead_far_pixel_ = static_cast<int>(lookahead_far_meter_ * meter_to_pixel_);
     // lookahead_near_pixel_ = static_cast<int>(lookahead_near_meter_ * meter_to_pixel_);
 
-    for (size_t i = 0; i < msg->data.size(); ++i) {
+    for (size_t i = 0; i < msg->data.size(); ++i)
+    {
         // logger.info("Vision parameter %zu updated to: %.2f", i, msg->data[i]);
     }
 
@@ -923,11 +945,10 @@ void VisionCapture4::callback_sub_vision_config(const std_msgs::msg::Float32Mult
 // callbak controlbox
 void VisionCapture4::callback_sub_controlbox(const std_msgs::msg::Int16MultiArray::SharedPtr msg)
 {
-    for (size_t i = 0; i < msg->data.size(); ++i) {
+    for (size_t i = 0; i < msg->data.size(); ++i)
         controlbox_data[i] = msg->data[i];
-    }
 
-    lookahead_far_meter_ = controlbox_data[12] * 0.00196; // Convert from cm to m
+    lookahead_far_meter_ = controlbox_data[12] * 0.00196;  // Convert from cm to m
     lookahead_near_meter_ = controlbox_data[13] * 0.00196; // Convert from cm to m
 
     lookahead_far_pixel_ = static_cast<int>(lookahead_far_meter_ * meter_to_pixel_);
@@ -937,26 +958,28 @@ void VisionCapture4::callback_sub_controlbox(const std_msgs::msg::Int16MultiArra
     saveConfig();
 }
 
-int main(int argc, char** argv)
+int main(int argc, char **argv)
 {
     rclcpp::init(argc, argv);
     std::shared_ptr<VisionCapture4> node_VisionCapture4;
 
-    try {
+    try
+    {
         node_VisionCapture4 = std::make_shared<VisionCapture4>();
         rclcpp::executors::MultiThreadedExecutor executor(
             rclcpp::ExecutorOptions(),
             11);
         executor.add_node(node_VisionCapture4);
         executor.spin();
-    } catch (const std::exception& e) {
+    }
+    catch (const std::exception &e)
+    {
         RCLCPP_ERROR(rclcpp::get_logger("vision_capture4"), "Failed to create VisionCapture4 node: %s", e.what());
         rclcpp::shutdown();
     }
 
-    if (node_VisionCapture4) {
+    if (node_VisionCapture4)
         node_VisionCapture4.reset();
-    }
 
     rclcpp::shutdown();
     return 0;

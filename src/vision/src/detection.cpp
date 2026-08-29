@@ -47,7 +47,7 @@ using namespace std::chrono_literals;
 
 class Detection : public rclcpp::Node
 {
-public:
+  public:
     rclcpp::Subscription<sensor_msgs::msg::Image>::SharedPtr sub_image_bgr_rs;
     rclcpp::Subscription<sensor_msgs::msg::Image>::SharedPtr sub_image_depth_rs;
     rclcpp::Subscription<sensor_msgs::msg::CameraInfo>::SharedPtr sub_camera_info_rs;
@@ -185,9 +185,7 @@ public:
     ~Detection()
     {
         if (routine_thread_.joinable())
-        {
             routine_thread_.join(); // Ensure the thread is joined before exiting
-        }
     }
 
     void callback_sub_camera_info_rs(const sensor_msgs::msg::CameraInfo::SharedPtr msg)
@@ -445,9 +443,7 @@ public:
             }
 
             for (size_t i = 0; i < removed_contours_idx.size(); i++)
-            {
                 contours.erase(contours.begin() + removed_contours_idx[i] - i);
-            }
 
             cv::drawContours(filtered_binary, contours, -1, cv::Scalar(255), cv::FILLED);
             cv::drawContours(debug_frame, contours, -1, cv::Scalar(255), cv::FILLED);
@@ -473,12 +469,8 @@ public:
             for (size_t rows = 0; rows < filtered_binary.rows; rows++)
             {
                 for (size_t cols = 0; cols < filtered_binary.cols; cols++)
-                {
                     if (filtered_binary.at<uint8_t>(rows, cols) > 0)
-                    {
                         point_cloud.emplace_back(cols - center_cam_x, center_cam_y - rows);
-                    }
-                }
             }
 
             if (point_cloud.empty())
@@ -510,9 +502,7 @@ public:
                 world_point.x = depth_meters;
 
                 if (world_point.z < 0.1 && world_point.z > -0.2 || 1)
-                {
                     point_cloud_world.push_back(world_point);
-                }
             }
 
             if (point_cloud_world.empty())
@@ -586,9 +576,7 @@ public:
                 float offset_z = 1.0f; // example: lower the cloud by 5cm
 
                 for (auto &point : pcl_cloud.points)
-                {
                     point.z = offset_z;
-                }
 
                 sensor_msgs::msg::PointCloud2 output_msg;
                 pcl::toROSMsg(pcl_cloud, output_msg);
@@ -653,9 +641,7 @@ public:
 
                     // Keep closest point for each angles
                     if (range < scan.ranges[index])
-                    {
                         scan.ranges[index] = range;
-                    }
                 }
 
                 // logger.info("Publishing LaserScan with %zu ranges", scan.ranges.size());
@@ -696,13 +682,9 @@ public:
         cv::Scalar color;
 
         if (width > height)
-        {
             color = cv::Scalar(255, 0, 0);
-        }
         else
-        {
             color = cv::Scalar(0, 0, 255);
-        }
 
         // Create a sliding window
         cv::Rect window(0, 0, width, height);
@@ -807,14 +789,11 @@ public:
                         break;
                     }
                 }
-                else
+                else if (pixel_value == 0)
                 {
-                    if (pixel_value == 0)
-                    {
-                        line_ptr->emplace_back(pixel_x - center_cam_x, center_cam_y - pixel_y);
-                        break;
-                        break;
-                    }
+                    line_ptr->emplace_back(pixel_x - center_cam_x, center_cam_y - pixel_y);
+                    break;
+                    break;
                 }
             }
             // }

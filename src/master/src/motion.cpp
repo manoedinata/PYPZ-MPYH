@@ -22,70 +22,66 @@ void Master::manual_motion(float vx, float vy, float wz)
      */
     static uint8_t state_control = 0;
     static uint8_t prev_state_control = 0;
-    if (vx < 0) {
+    if (vx < 0)
+    {
         state_control = 0;
         if (prev_state_control != 0)
             actuation_ax = 0;
 
         actuation_ax += -profile_max_braking_jerk * 0.5 * dt * dt;
-        if (actuation_ax < -profile_max_braking_acceleration) {
+        if (actuation_ax < -profile_max_braking_acceleration)
             actuation_ax = -profile_max_braking_acceleration;
-        }
         vx_buffer += actuation_ax * dt;
-        if (vx_buffer < vx) {
+        if (vx_buffer < vx)
             vx_buffer = vx;
-        }
     }
     /**
      * Accelerate setelah braking, segera lepas pedal brake
      */
-    else if (vx > 0 && vx_buffer < 0) {
+    else if (vx > 0 && vx_buffer < 0)
+    {
         state_control = 1;
         if (prev_state_control != 1)
             actuation_ax = 0;
 
         actuation_ax += profile_max_braking_jerk * 0.5 * dt * dt;
-        if (actuation_ax > profile_max_braking_acceleration) {
+        if (actuation_ax > profile_max_braking_acceleration)
             actuation_ax = profile_max_braking_acceleration;
-        }
         vx_buffer += actuation_ax * dt;
-        if (vx_buffer > vx) {
+        if (vx_buffer > vx)
             vx_buffer = vx;
-        }
     }
     /**
      * Normal acceleration
      */
-    else if (vx > vx_buffer) {
+    else if (vx > vx_buffer)
+    {
         state_control = 2;
         if (prev_state_control != 2)
             actuation_ax = 0;
 
         actuation_ax += profile_max_accelerate_jerk * 0.5 * dt * dt;
-        if (actuation_ax > profile_max_acceleration) {
+        if (actuation_ax > profile_max_acceleration)
             actuation_ax = profile_max_acceleration;
-        }
         vx_buffer += actuation_ax * dt;
-        if (vx_buffer > vx) {
+        if (vx_buffer > vx)
             vx_buffer = vx;
-        }
     }
     /**
      * Normal deceleration
      */
-    else if (vx < vx_buffer) {
+    else if (vx < vx_buffer)
+    {
         state_control = 3;
         if (prev_state_control != 3)
             actuation_ax = 0;
 
         actuation_ax -= profile_max_decelerate_jerk * 0.5 * dt * dt;
-        if (actuation_ax < -profile_max_decceleration) {
+        if (actuation_ax < -profile_max_decceleration)
             actuation_ax = -profile_max_decceleration;
-        }
         vx_buffer += actuation_ax * dt;
-        if (vx_buffer < vx) {
+        if (vx_buffer < vx)
             vx_buffer = vx;
-        }
     }
     prev_state_control = state_control;
 
@@ -105,23 +101,23 @@ void Master::manual_motion(float vx, float vy, float wz)
 
     float steering_rate = 99.0;
 
-    if (wz > wz_buffer) {
+    if (wz > wz_buffer)
+    {
         wz_buffer += steering_rate * dt;
-        if (wz_buffer > wz) {
+        if (wz_buffer > wz)
             wz_buffer = wz;
-        }
-    } else if (wz < wz_buffer) {
+    }
+    else if (wz < wz_buffer)
+    {
         wz_buffer -= steering_rate * dt;
-        if (wz_buffer < wz) {
+        if (wz_buffer < wz)
             wz_buffer = wz;
-        }
     }
 
-    if (vx_buffer > profile_max_velocity) {
+    if (vx_buffer > profile_max_velocity)
         vx_buffer = profile_max_velocity;
-    } else if (vx_buffer < -profile_max_velocity) {
+    else if (vx_buffer < -profile_max_velocity)
         vx_buffer = -profile_max_velocity;
-    }
 
     if (wz_buffer > profile_max_steering_rad)
         wz_buffer = profile_max_steering_rad;
@@ -137,7 +133,7 @@ void Master::manual_motion(float vx, float vy, float wz)
     // logger.info("%.2f %.2f || %.2f %.2f || %.2f %.2f || %.2f %.2f", vx, wz, actuation_ax, steering_rate, vx_buffer, wz_buffer, actuation_vx, actuation_wz);
 }
 
-int8_t Master::move_forward_distance(float distance_target, float* pvelocity, float start_x, float start_y, float target_distance)
+int8_t Master::move_forward_distance(float distance_target, float *pvelocity, float start_x, float start_y, float target_distance)
 {
     static float error_prev = 0.0;
     static float error_integral = 0.0;
@@ -170,23 +166,27 @@ int8_t Master::move_forward_distance(float distance_target, float* pvelocity, fl
     // Deteksi kondisi selesai
 
     logger.info("Current Position: %.2f, Target Distance: %.2f, Error: %.2f, Control Vx: %.2f",
-        current_position, distance_target, error, control_vx);
+                current_position, distance_target, error, control_vx);
 
     *pvelocity = control_vx;
 
-    if (fabs(error) < target_distance) {
+    if (fabs(error) < target_distance)
+    {
         control_vx = 0.0;
         motion_done = true;
         return 1;
-    } else {
+    }
+    else
+    {
         return 0;
     }
     // manual_motion(control_vx, 0.0, 0.0); // panggil fungsi throttle + steering kamu
 }
 
-void Master::wp2velocity_steering(float lookahead_distance, float* pvelocity, float* psteering, bool is_loop)
+void Master::wp2velocity_steering(float lookahead_distance, float *pvelocity, float *psteering, bool is_loop)
 {
-    if (waypoints.size() == 0) {
+    if (waypoints.size() == 0)
+    {
         *pvelocity = 0;
         *psteering = 0;
         return;
@@ -202,23 +202,30 @@ void Master::wp2velocity_steering(float lookahead_distance, float* pvelocity, fl
 
     /* Mencari index sekarang pada waypoints */
     float error_index_sekarang = pythagoras(fb_final_pose_xyo[0], fb_final_pose_xyo[1], waypoints[index_sekarang].x, waypoints[index_sekarang].y);
-    if (error_index_sekarang > threshold_error_sangat_besar) {
+    if (error_index_sekarang > threshold_error_sangat_besar)
+    {
         float min_error = FLT_MAX;
         uint32_t index_terdekat = 0;
-        for (size_t i = 0; i < waypoints.size(); i++) {
+        for (size_t i = 0; i < waypoints.size(); i++)
+        {
             float error = pythagoras(fb_final_pose_xyo[0], fb_final_pose_xyo[1], waypoints[i].x, waypoints[i].y);
-            if (error < min_error) {
+            if (error < min_error)
+            {
                 min_error = error;
                 index_terdekat = i;
             }
         }
         index_sekarang = index_terdekat;
-    } else if (error_index_sekarang > thresholad_error_kecil) {
+    }
+    else if (error_index_sekarang > thresholad_error_kecil)
+    {
         float min_error = FLT_MAX;
         uint32_t index_terdekat = 0;
-        for (size_t i = index_sekarang - error_kecil_window_index_search; i < index_sekarang + error_kecil_window_index_search * 2; i++) {
+        for (size_t i = index_sekarang - error_kecil_window_index_search; i < index_sekarang + error_kecil_window_index_search * 2; i++)
+        {
             float error = pythagoras(fb_final_pose_xyo[0], fb_final_pose_xyo[1], waypoints[i].x, waypoints[i].y);
-            if (error < min_error) {
+            if (error < min_error)
+            {
                 min_error = error;
                 index_terdekat = i;
             }
@@ -228,9 +235,11 @@ void Master::wp2velocity_steering(float lookahead_distance, float* pvelocity, fl
 
     /* Menentukan efek terminal */
     static float max_velocity = profile_max_velocity;
-    for (size_t i = 0; i < terminals.terminals.size(); i++) {
+    for (size_t i = 0; i < terminals.terminals.size(); i++)
+    {
         float jarak_robot_terminal = pythagoras(fb_final_pose_xyo[0], fb_final_pose_xyo[1], terminals.terminals[i].target_pose_x, terminals.terminals[i].target_pose_y);
-        if (jarak_robot_terminal < terminals.terminals[i].radius_area) {
+        if (jarak_robot_terminal < terminals.terminals[i].radius_area)
+        {
             lookahead_distance = terminals.terminals[i].target_lookahead_distance;
             obs_scan_r = terminals.terminals[i].obs_scan_r;
             max_velocity = terminals.terminals[i].target_max_velocity_x;
@@ -240,24 +249,30 @@ void Master::wp2velocity_steering(float lookahead_distance, float* pvelocity, fl
 
     /* Mencari waypoint sesuai lookahead_distance */
     index_lookahead = index_sekarang;
-    if (!is_loop) {
-        for (size_t i = index_sekarang; i < waypoints.size(); i++) {
+    if (!is_loop)
+    {
+        for (size_t i = index_sekarang; i < waypoints.size(); i++)
+        {
             float error = pythagoras(fb_final_pose_xyo[0], fb_final_pose_xyo[1], waypoints[i].x, waypoints[i].y);
-            if (error > lookahead_distance) {
+            if (error > lookahead_distance)
+            {
                 index_lookahead = i;
                 break;
             }
         }
-    } else {
-        for (size_t i = index_sekarang; i < waypoints.size() * 2; i++) {
+    }
+    else
+    {
+        for (size_t i = index_sekarang; i < waypoints.size() * 2; i++)
+        {
             size_t index_used = i;
 
-            if (i >= waypoints.size()) {
+            if (i >= waypoints.size())
                 index_used -= waypoints.size();
-            }
 
             float error = pythagoras(fb_final_pose_xyo[0], fb_final_pose_xyo[1], waypoints[index_used].x, waypoints[index_used].y);
-            if (error > lookahead_distance) {
+            if (error > lookahead_distance)
+            {
                 index_lookahead = index_used;
                 break;
             }
@@ -265,10 +280,14 @@ void Master::wp2velocity_steering(float lookahead_distance, float* pvelocity, fl
     }
 
     /* Jika sudah mencapai waypoint terakhir */
-    if (index_lookahead == waypoints.size() - 1) {
-        if (is_loop) {
+    if (index_lookahead == waypoints.size() - 1)
+    {
+        if (is_loop)
+        {
             index_lookahead = 0;
-        } else {
+        }
+        else
+        {
             *pvelocity = 0;
             *psteering = 0;
             return;
@@ -276,7 +295,8 @@ void Master::wp2velocity_steering(float lookahead_distance, float* pvelocity, fl
     }
 
     /* Safety tambahan */
-    if (index_lookahead == index_sekarang) {
+    if (index_lookahead == index_sekarang)
+    {
         *pvelocity = 0;
         *psteering = 0;
         return;
@@ -330,9 +350,10 @@ void Master::wp2velocity_steering(float lookahead_distance, float* pvelocity, fl
     *psteering = target_steering_angle;
 }
 
-void Master::wp2velocity_steering_race(float lookahead_distance, float* pvelocity, float* psteering, bool is_loop)
+void Master::wp2velocity_steering_race(float lookahead_distance, float *pvelocity, float *psteering, bool is_loop)
 {
-    if (waypoints.size() == 0) {
+    if (waypoints.size() == 0)
+    {
         *pvelocity = 0;
         *psteering = 0;
         return;
@@ -362,15 +383,18 @@ void Master::wp2velocity_steering_race(float lookahead_distance, float* pvelocit
     //                                                                                  : "kiri",
     //             waypoints_race_selected.size());
 
-    if (prev_selected_lane != selected_lane) {
+    if (prev_selected_lane != selected_lane)
+    {
         // index_sekarang = 0;
     }
 
     float min_error = FLT_MAX;
     uint32_t index_terdekat = 0;
-    for (size_t i = 0; i < waypoints_race_selected.size(); i++) {
+    for (size_t i = 0; i < waypoints_race_selected.size(); i++)
+    {
         float error = pythagoras(fb_final_pose_xyo[0], fb_final_pose_xyo[1], waypoints_race_selected[i].x, waypoints_race_selected[i].y);
-        if (error < min_error) {
+        if (error < min_error)
+        {
             min_error = error;
             index_terdekat = i;
         }
@@ -412,9 +436,11 @@ void Master::wp2velocity_steering_race(float lookahead_distance, float* pvelocit
 
     /* Menentukan efek terminal */
     static float max_velocity = profile_max_velocity;
-    for (size_t i = 0; i < terminals.terminals.size(); i++) {
+    for (size_t i = 0; i < terminals.terminals.size(); i++)
+    {
         float jarak_robot_terminal = pythagoras(fb_final_pose_xyo[0], fb_final_pose_xyo[1], terminals.terminals[i].target_pose_x, terminals.terminals[i].target_pose_y);
-        if (jarak_robot_terminal < terminals.terminals[i].radius_area) {
+        if (jarak_robot_terminal < terminals.terminals[i].radius_area)
+        {
             lookahead_distance = terminals.terminals[i].target_lookahead_distance;
             obs_scan_r = terminals.terminals[i].obs_scan_r;
             max_velocity = terminals.terminals[i].target_max_velocity_x;
@@ -424,24 +450,30 @@ void Master::wp2velocity_steering_race(float lookahead_distance, float* pvelocit
 
     /* Mencari waypoint sesuai lookahead_distance */
     index_lookahead = index_sekarang;
-    if (!is_loop) {
-        for (size_t i = index_sekarang; i < waypoints_race_selected.size(); i++) {
+    if (!is_loop)
+    {
+        for (size_t i = index_sekarang; i < waypoints_race_selected.size(); i++)
+        {
             float error = pythagoras(fb_final_pose_xyo[0], fb_final_pose_xyo[1], waypoints_race_selected[i].x, waypoints_race_selected[i].y);
-            if (error > lookahead_distance) {
+            if (error > lookahead_distance)
+            {
                 index_lookahead = i;
                 break;
             }
         }
-    } else {
-        for (size_t i = index_sekarang; i < waypoints_race_selected.size() * 2; i++) {
+    }
+    else
+    {
+        for (size_t i = index_sekarang; i < waypoints_race_selected.size() * 2; i++)
+        {
             size_t index_used = i;
 
-            if (i >= waypoints_race_selected.size()) {
+            if (i >= waypoints_race_selected.size())
                 index_used -= waypoints_race_selected.size();
-            }
 
             float error = pythagoras(fb_final_pose_xyo[0], fb_final_pose_xyo[1], waypoints_race_selected[index_used].x, waypoints_race_selected[index_used].y);
-            if (error > lookahead_distance) {
+            if (error > lookahead_distance)
+            {
                 index_lookahead = index_used;
                 break;
             }
@@ -451,10 +483,14 @@ void Master::wp2velocity_steering_race(float lookahead_distance, float* pvelocit
     prev_selected_lane = selected_lane;
 
     /* Jika sudah mencapai waypoint terakhir */
-    if (index_lookahead == waypoints_race_selected.size() - 1) {
-        if (is_loop) {
+    if (index_lookahead == waypoints_race_selected.size() - 1)
+    {
+        if (is_loop)
+        {
             index_lookahead = 0;
-        } else {
+        }
+        else
+        {
             *pvelocity = 0;
             *psteering = 0;
             return;
@@ -462,7 +498,8 @@ void Master::wp2velocity_steering_race(float lookahead_distance, float* pvelocit
     }
 
     /* Safety tambahan */
-    if (index_lookahead == index_sekarang) {
+    if (index_lookahead == index_sekarang)
+    {
         *pvelocity = 0;
         *psteering = 0;
         return;
@@ -516,9 +553,10 @@ void Master::wp2velocity_steering_race(float lookahead_distance, float* pvelocit
     *psteering = target_steering_angle;
 }
 
-void Master::wp2velocity_steering_urban(float lookahead_distance, float* pvelocity, float* psteering, int* counter_diam, point_t arah_belok, int32_t sign_status, bool is_loop)
+void Master::wp2velocity_steering_urban(float lookahead_distance, float *pvelocity, float *psteering, int *counter_diam, point_t arah_belok, int32_t sign_status, bool is_loop)
 {
-    if (waypoints.size() == 0) {
+    if (waypoints.size() == 0)
+    {
         *pvelocity = 0;
         *psteering = 0;
         *counter_diam = 0;
@@ -536,23 +574,30 @@ void Master::wp2velocity_steering_urban(float lookahead_distance, float* pveloci
 
     /* Mencari index sekarang pada waypoints */
     float error_index_sekarang = pythagoras(fb_final_pose_xyo[0], fb_final_pose_xyo[1], waypoints[index_sekarang].x, waypoints[index_sekarang].y);
-    if (error_index_sekarang > threshold_error_sangat_besar) {
+    if (error_index_sekarang > threshold_error_sangat_besar)
+    {
         float min_error = FLT_MAX;
         uint32_t index_terdekat = 0;
-        for (size_t i = 0; i < waypoints.size(); i++) {
+        for (size_t i = 0; i < waypoints.size(); i++)
+        {
             float error = pythagoras(fb_final_pose_xyo[0], fb_final_pose_xyo[1], waypoints[i].x, waypoints[i].y);
-            if (error < min_error) {
+            if (error < min_error)
+            {
                 min_error = error;
                 index_terdekat = i;
             }
         }
         index_sekarang = index_terdekat;
-    } else if (error_index_sekarang > thresholad_error_kecil) {
+    }
+    else if (error_index_sekarang > thresholad_error_kecil)
+    {
         float min_error = FLT_MAX;
         uint32_t index_terdekat = 0;
-        for (size_t i = index_sekarang - error_kecil_window_index_search; i < index_sekarang + error_kecil_window_index_search * 2; i++) {
+        for (size_t i = index_sekarang - error_kecil_window_index_search; i < index_sekarang + error_kecil_window_index_search * 2; i++)
+        {
             float error = pythagoras(fb_final_pose_xyo[0], fb_final_pose_xyo[1], waypoints[i].x, waypoints[i].y);
-            if (error < min_error) {
+            if (error < min_error)
+            {
                 min_error = error;
                 index_terdekat = i;
             }
@@ -562,11 +607,15 @@ void Master::wp2velocity_steering_urban(float lookahead_distance, float* pveloci
 
     /* Menentukan efek terminal */
     static float max_velocity = profile_max_velocity;
-    for (size_t i = 0; i < terminals.terminals.size(); i++) {
+    for (size_t i = 0; i < terminals.terminals.size(); i++)
+    {
         float jarak_robot_terminal = pythagoras(fb_final_pose_xyo[0], fb_final_pose_xyo[1], terminals.terminals[i].target_pose_x, terminals.terminals[i].target_pose_y);
-        if (jarak_robot_terminal < terminals.terminals[i].radius_area) {
-            if (terminals.terminals[i].type == TERMINAL_TYPE_STOP1) {
-                if (sign_status != -1) {
+        if (jarak_robot_terminal < terminals.terminals[i].radius_area)
+        {
+            if (terminals.terminals[i].type == TERMINAL_TYPE_STOP1)
+            {
+                if (sign_status != -1)
+                {
                     lookahead_distance = terminals.terminals[i].target_lookahead_distance;
                     obs_scan_r = terminals.terminals[i].obs_scan_r;
                     max_velocity = terminals.terminals[i].target_max_velocity_x;
@@ -574,7 +623,9 @@ void Master::wp2velocity_steering_urban(float lookahead_distance, float* pveloci
                     sedang_diam = 1;
                     break;
                 }
-            } else {
+            }
+            else
+            {
                 lookahead_distance = terminals.terminals[i].target_lookahead_distance;
                 obs_scan_r = terminals.terminals[i].obs_scan_r;
                 max_velocity = terminals.terminals[i].target_max_velocity_x;
@@ -585,35 +636,45 @@ void Master::wp2velocity_steering_urban(float lookahead_distance, float* pveloci
 
     /* Mencari waypoint sesuai lookahead_distance */
     index_lookahead = index_sekarang;
-    if (!is_loop) {
+    if (!is_loop)
+    {
         float min_dist = FLT_MAX;
-        for (size_t i = index_sekarang; i < waypoints.size(); i++) {
+        for (size_t i = index_sekarang; i < waypoints.size(); i++)
+        {
             float error = pythagoras(fb_final_pose_xyo[0], fb_final_pose_xyo[1], waypoints[i].x, waypoints[i].y);
-            if (error > lookahead_distance) {
+            if (error > lookahead_distance)
+            {
                 index_lookahead = i;
                 break;
             }
         }
-    } else {
+    }
+    else
+    {
         float min_dist = FLT_MAX;
 
-        for (size_t i = index_sekarang; i < waypoints.size() * 2; i++) {
+        for (size_t i = index_sekarang; i < waypoints.size() * 2; i++)
+        {
             size_t index_used = i;
 
-            if (i >= waypoints.size()) {
+            if (i >= waypoints.size())
                 index_used -= waypoints.size();
-            }
 
-            if ((sign_status == 2 || sign_status == 3)) {
+            if ((sign_status == 2 || sign_status == 3))
+            {
 
                 float error = pythagoras(arah_belok.x, arah_belok.y, waypoints[index_used].x, waypoints[index_used].y);
-                if (error < min_dist) {
+                if (error < min_dist)
+                {
                     index_lookahead = index_used;
                     min_dist = error;
                 }
-            } else {
+            }
+            else
+            {
                 float error = pythagoras(fb_final_pose_xyo[0], fb_final_pose_xyo[1], waypoints[index_used].x, waypoints[index_used].y);
-                if (error > lookahead_distance) {
+                if (error > lookahead_distance)
+                {
                     index_lookahead = index_used;
                     break;
                 }
@@ -624,10 +685,14 @@ void Master::wp2velocity_steering_urban(float lookahead_distance, float* pveloci
     logger.info("pose: {%.3f, %.3f, %.3f}, target pos: {%.3f %.3f} || %.2f | %d -> %d", fb_final_pose_xyo[0], fb_final_pose_xyo[1], fb_final_pose_xyo[2], arah_belok.x, arah_belok.y, pythagoras(arah_belok.x, arah_belok.y, waypoints[index_lookahead].x, waypoints[index_lookahead].y), index_lookahead, index_sekarang);
 
     /* Jika sudah mencapai waypoint terakhir */
-    if (index_lookahead == waypoints.size() - 1) {
-        if (is_loop) {
+    if (index_lookahead == waypoints.size() - 1)
+    {
+        if (is_loop)
+        {
             index_lookahead = 0;
-        } else {
+        }
+        else
+        {
             *pvelocity = 0;
             *psteering = 0;
             *counter_diam = sedang_diam;
@@ -636,7 +701,8 @@ void Master::wp2velocity_steering_urban(float lookahead_distance, float* pveloci
     }
 
     /* Safety tambahan */
-    if (index_lookahead == index_sekarang) {
+    if (index_lookahead == index_sekarang)
+    {
         *pvelocity = 0;
         *psteering = 0;
         *counter_diam = sedang_diam;
@@ -675,7 +741,7 @@ void Master::wp2velocity_steering_urban(float lookahead_distance, float* pveloci
     *counter_diam = sedang_diam;
 }
 
-void Master::wp2velocity_steering_urban_coba(float lookahead_distance, float* pvelocity, float* psteering, bool diam, bool* masuk_terminal_diam, bool is_loop)
+void Master::wp2velocity_steering_urban_coba(float lookahead_distance, float *pvelocity, float *psteering, bool diam, bool *masuk_terminal_diam, bool is_loop)
 {
 }
 
@@ -717,8 +783,8 @@ void Master::cnn_move(float vx, float vy, float wz, float profile_max_velocity, 
     static float target_steering_final = 0;
     static float prev_steering_obs = 0;
     static int8_t prev_ada_obs = 0;
-    static point_t point_menghindar = { 0, 0 };
-    static point_t global_obs_pos = { 0, 0 };
+    static point_t point_menghindar = {0, 0};
+    static point_t global_obs_pos = {0, 0};
 
     static int cntr_obs_hilang = 0;
 
@@ -731,28 +797,31 @@ void Master::cnn_move(float vx, float vy, float wz, float profile_max_velocity, 
 
     logger.info("ada_obs: %d centroid: (%.2f, %.2f) || %.2f %.2f", ada_obs, obstacle_centroid.x(), obstacle_centroid.y(), fb_final_pose_xyo[0], fb_final_pose_xyo[1]);
 
-    if (ada_obs == 0 && cntr_obs_hilang < 70) {
+    if (ada_obs == 0 && cntr_obs_hilang < 70)
+    {
         cntr_obs_hilang++;
 
-        if (cntr_obs_hilang > 20) {
+        if (cntr_obs_hilang > 20)
             fsm_state = 0;
-        }
-    } else {
+    }
+    else
+    {
         cntr_obs_hilang = 0; // Reset counter if obstacle is detected
     }
 
-    if (obstacle_centroid.x() < 1.4) {
+    if (obstacle_centroid.x() < 1.4)
         target_velocity_final = kecepatan_default_menghindar;
-    }
 
     // jika ada obstacle
-    if ((obstacle_centroid.x() < 1 && ada_obs == 1) && (fsm_state != 1 && fsm_state != 2)) {
+    if ((obstacle_centroid.x() < 1 && ada_obs == 1) && (fsm_state != 1 && fsm_state != 2))
+    {
         fsm_state = 1; // Set state ke 1 jika ada obstacle
-        global_obs_pos = { obstacle_centroid.x() + fb_final_pose_xyo[0], obstacle_centroid.y() + fb_final_pose_xyo[1] };
+        global_obs_pos = {obstacle_centroid.x() + fb_final_pose_xyo[0], obstacle_centroid.y() + fb_final_pose_xyo[1]};
     }
-    if ((obstacle_centroid.x() < 1 && ada_obs == 2) && (fsm_state != 1 && fsm_state != 2)) {
+    if ((obstacle_centroid.x() < 1 && ada_obs == 2) && (fsm_state != 1 && fsm_state != 2))
+    {
         fsm_state = 1; // Set state ke 1 jika ada obstacle
-        global_obs_pos = { obstacle_centroid.x() + fb_final_pose_xyo[0], obstacle_centroid.y() + fb_final_pose_xyo[1] };
+        global_obs_pos = {obstacle_centroid.x() + fb_final_pose_xyo[0], obstacle_centroid.y() + fb_final_pose_xyo[1]};
     }
 
     // if (ada_obs == 0 && prev_ada_obs == 0 && fsm_state != 0)
@@ -762,63 +831,68 @@ void Master::cnn_move(float vx, float vy, float wz, float profile_max_velocity, 
     //     target_steering_final = wz;
     // }
 
-    if (fsm_state == 0) {
-        if (fabs(target_steering_final) > 0.05) {
+    if (fsm_state == 0)
+    {
+        if (fabs(target_steering_final) > 0.05)
+        {
             target_velocity_final *= 0.7;
-            if (target_velocity_final < 0.8) {
+            if (target_velocity_final < 0.8)
                 target_velocity_final = 0.8; // Minimum speed to avoid stalling
-            }
         }
-        if (fabs(target_steering_final) > 0.1) {
+        if (fabs(target_steering_final) > 0.1)
+        {
             target_velocity_final *= 0.7;
-            if (target_velocity_final < 0.7) {
+            if (target_velocity_final < 0.7)
                 target_velocity_final = 0.7; // Minimum speed to avoid stalling
-            }
         }
-        if (fabs(target_steering_final) > 0.13) {
+        if (fabs(target_steering_final) > 0.13)
+        {
             target_velocity_final *= 0.5;
-            if (target_velocity_final < 0.6) {
+            if (target_velocity_final < 0.6)
                 target_velocity_final = 0.6; // Minimum speed to avoid stalling
-            }
         }
 
         // check if the robot is turning left or right
 
         // Apply the final target velocity and steering angle
-    } else if (fsm_state == 1) {
+    }
+    else if (fsm_state == 1)
+    {
         target_velocity_final = kecepatan_default_menghindar;
         // arahkan steering ke target point menghindar
         logger.info("FSM STATE 1: %.2f %.2f || %.2f || dist: %.2f", point_menghindar.x, point_menghindar.y, atan2(point_menghindar.y - fb_final_pose_xyo[1], point_menghindar.x - fb_final_pose_xyo[0]), pythagoras(global_obs_pos.x, global_obs_pos.y, fb_final_pose_xyo[0], fb_final_pose_xyo[1]));
 
         // buat supaya steering mengikuti posisi obstacle
-        if (obstacle_centroid.x() > 0.5) {
-            point_menghindar = { obstacle_centroid.x(), obstacle_centroid.y() + offset_jarak_hindar }; // Maju ke kiri
-        }
+        if (obstacle_centroid.x() > 0.5)
+            point_menghindar = {obstacle_centroid.x(), obstacle_centroid.y() + offset_jarak_hindar}; // Maju ke kiri
 
         target_steering_final = atan2(point_menghindar.y, point_menghindar.x);
         // target_steering_final = 0.15;
 
-        if (cntr_obs_hilang > lama_waktu_menghindar) {
+        if (cntr_obs_hilang > lama_waktu_menghindar)
             fsm_state = 0; // Set state ke 2 jika tidak ada obstacle
-        }
-    } else if (fsm_state == 2) {
+    }
+    else if (fsm_state == 2)
+    {
         target_velocity_final = kecepatan_default_menghindar;
 
         logger.info("FSM STATE 2: %.2f %.2f || %.2f || dist: %.2f", point_menghindar.x, point_menghindar.y, atan2(point_menghindar.y - fb_final_pose_xyo[1], point_menghindar.x - fb_final_pose_xyo[0]), pythagoras(global_obs_pos.x, global_obs_pos.y, fb_final_pose_xyo[0], fb_final_pose_xyo[1]));
 
         // buat supaya steering mengikuti posisi obstacle
-        point_menghindar = { obstacle_centroid.x(), obstacle_centroid.y() + offset_jarak_hindar }; // Maju ke kanan
+        point_menghindar = {obstacle_centroid.x(), obstacle_centroid.y() + offset_jarak_hindar}; // Maju ke kanan
 
         target_steering_final = atan2(point_menghindar.y, point_menghindar.x);
         // target_steering_final = 0.15;
 
-        if (cntr_obs_hilang > lama_waktu_menghindar) {
+        if (cntr_obs_hilang > lama_waktu_menghindar)
             fsm_state = 0; // Set state ke 2 jika tidak ada obstacle
-        }
-    } else if (fsm_state == 3) {
+    }
+    else if (fsm_state == 3)
+    {
         static float cntr_merubah_jalan = 0;
 
-        if (cntr_merubah_jalan++ > 20) {
+        if (cntr_merubah_jalan++ > 20)
+        {
             cntr_merubah_jalan = 0;
             fsm_state = 0;
         }
@@ -947,19 +1021,27 @@ void Master::urban_move2(float vx, float vy, float wz, int8_t oto)
         ARUCO_FORWARD,
     };
 
-    if (debug_mode2_ == 0) {
+    if (debug_mode2_ == 0)
+    {
         use_debug = 0;
-    } else if (debug_mode2_ == 1) {
+    }
+    else if (debug_mode2_ == 1)
+    {
         use_debug = 1;
         sign_array_debug = sign_array_debug2_left;
-    } else if (debug_mode2_ == 2) {
+    }
+    else if (debug_mode2_ == 2)
+    {
         use_debug = 1;
         sign_array_debug = sign_array_debug2_right;
-    } else if (debug_mode2_ == 3) ///
-    { ////
+    }
+    else if (debug_mode2_ == 3) ///
+    {                           ////
         use_debug = 1;
         sign_array_debug = sign_array_debug2_forward;
-    } else if (debug_mode2_ == 4) {
+    }
+    else if (debug_mode2_ == 4)
+    {
         use_debug = 1;
         sign_array_debug = sign_array_debug_default;
     }
@@ -971,13 +1053,11 @@ void Master::urban_move2(float vx, float vy, float wz, int8_t oto)
     if (idx_dead_end > debug_dead_end.size() - 1)
         idx_dead_end = 0; // Reset index dead end jika sudah mencapai akhir
 
-    if (idx_sign_detected > sign_array_debug.size() - 1) {
+    if (idx_sign_detected > sign_array_debug.size() - 1)
         idx_sign_detected = 0; // Reset index sign detected jika sudah mencapai akhir
-    }
 
-    if (idx_sign_detected > sign_array_debug.size() - 1) {
+    if (idx_sign_detected > sign_array_debug.size() - 1)
         use_debug = 0;
-    }
 
     use_debug = 0;
     //! ==========================
@@ -1020,7 +1100,7 @@ void Master::urban_move2(float vx, float vy, float wz, int8_t oto)
     float dist_near_zebracross = urban_data.dist_near_zebracross;
     float dist_near_zebracross_vertical = urban_data.dist_near_zebracross_vertical;
     float dist_near_zebracross_horizontal = urban_data.dist_near_zebracross_horizontal;
-    float centroid_sign[2] = { urban_data.centroid_sign_x, urban_data.centroid_sign_y };
+    float centroid_sign[2] = {urban_data.centroid_sign_x, urban_data.centroid_sign_y};
     float dist_zebra_cross_kiri = urban_data.dist_near_zebracross_vertical_kiri < 1.0 ? urban_data.dist_near_zebracross_vertical_kiri : 99.0;
     float dist_zebra_cross_kanan = urban_data.dist_near_zebracross_vertical_kanan < 1.0 ? urban_data.dist_near_zebracross_vertical_kanan : 99.0;
     float dist_sign_pole = pythagoras(centroid_sign[0], centroid_sign[1], 0, 0);
@@ -1061,31 +1141,36 @@ void Master::urban_move2(float vx, float vy, float wz, int8_t oto)
     float min_jarak_ke_putih_ = 0.3;
     float max_delta_derajat_gyro = 80;
 
-    if (prev_mask_jalan_bocor == 0 && mask_jalan_bocor != 0) {
+    if (prev_mask_jalan_bocor == 0 && mask_jalan_bocor != 0)
         jalan_bocor = !jalan_bocor; // Set jalan bocor jika mask berubah dari 0 ke 1
-    }
 
-    if (urban_fsm.value == 0) {
-        if (urban_data.jalan_berkelok) {
-            jalan_berkelok = 1; // Set jalan berkelok jika data jalan berkelok
+    if (urban_fsm.value == 0)
+    {
+        if (urban_data.jalan_berkelok)
+        {
+            jalan_berkelok = 1;   // Set jalan berkelok jika data jalan berkelok
             cntr_jalan_lurus = 0; // Reset counter jalan lurus
-        } else {
+        }
+        else
+        {
             cntr_jalan_lurus++;
-            if (cntr_jalan_lurus > 300) {
-                jalan_berkelok = 0; // Reset jalan berkelok jika sudah cukup
+            if (cntr_jalan_lurus > 300)
+            {
+                jalan_berkelok = 0;   // Reset jalan berkelok jika sudah cukup
                 cntr_jalan_lurus = 0; // Reset counter jalan lurus
             }
         }
-    } else {
+    }
+    else
+    {
         cntr_jalan_lurus = 0; // Reset counter jalan lurus
-        jalan_berkelok = 0; // Reset jalan berkelok jika tidak ada data
+        jalan_berkelok = 0;   // Reset jalan berkelok jika tidak ada data
     }
 
-    if (oto) {
+    if (oto)
         target_velocity = target_vel_otomatis;
-    } else {
+    else
         target_velocity = vx;
-    }
 
     curr_gyro_deg += fb_final_vel_dxdydo[2] * 0.02 RAD2DEG; // Update gyro based on the angular velocity
 
@@ -1103,7 +1188,8 @@ void Master::urban_move2(float vx, float vy, float wz, int8_t oto)
 
     static float enc_menghindar_obs = enc_meter;
 
-    if (ada_obs) {
+    if (ada_obs)
+    {
         //! ==============
         //! CASE BAHAYA
         //! ==============
@@ -1125,49 +1211,62 @@ void Master::urban_move2(float vx, float vy, float wz, int8_t oto)
         return;
     }
 
-    if ((fabs(enc_meter - enc_menghindar_obs) < 0.05) && prev_ada_obs) {
+    if ((fabs(enc_meter - enc_menghindar_obs) < 0.05) && prev_ada_obs)
+    {
         logger.info("AAAAAAAAAAAAAAAA");
         manual_motion(target_velocity, 0, 0);
         return;
-    } else {
+    }
+    else
+    {
         prev_ada_obs = 0;
     }
 
-    switch (urban_fsm.value) {
+    switch (urban_fsm.value)
+    {
     case 0:
         curr_gyro_deg = 0; // Reset gyro when entering state 0
 
         //* BUFFER ADA ZEBRACROSS DI DEPAN
-        if (zebracros_horizontal_valid && dist_near_zebracross_horizontal == dist_near_zebracross) {
+        if (zebracros_horizontal_valid && dist_near_zebracross_horizontal == dist_near_zebracross)
             ada_zebracross_didepan = 1; // Set flag if zebra cross is detected in front
-        }
 
         //* GERAK MENGIKUTI TARGET JIKA VALID (PRIORITAS TARGET PUTIH > TARGET UNGU)
-        if (target_putih_valid /*&& !jalan_berkelok*/) {
+        if (target_putih_valid /*&& !jalan_berkelok*/)
+        {
             status_steering = 1; // Steering karena target putih valid
             expected_target_steering = angle_target_putih;
-        } else if (sign_pole_valid && (pythagoras(centroid_sign[0], centroid_sign[1], 0, 0) > 0.2)) {
+        }
+        else if (sign_pole_valid && (pythagoras(centroid_sign[0], centroid_sign[1], 0, 0) > 0.2))
+        {
             status_steering = 4; // Steering karena rambu valid
             expected_target_steering = angle_target_sign;
-        } else if (target_edge_valid) {
+        }
+        else if (target_edge_valid)
+        {
             status_steering = 2; // Steering karena target ungu valid
             expected_target_steering = angle_target_ungu;
-        } else {
+        }
+        else
+        {
             expected_target_steering = 0; // Reset expected steering if no valid target
         }
 
-        if (sign_detected_status == ARUCO_STOP && sign_pole_valid_running) {
+        if (sign_detected_status == ARUCO_STOP && sign_pole_valid_running)
+        {
             status_steering = 4; // Steering karena rambu valid
             expected_target_steering = angle_target_sign;
         }
 
         //* PERHALUS PERGERAKAN STEERING
-        if (fabs(expected_target_steering) > (12 DEG2RAD)) {
+        if (fabs(expected_target_steering) > (12 DEG2RAD))
+        {
             if (expected_target_steering < target_steering)
                 target_steering -= 0.01; // Adjust steering to the left
             else if (expected_target_steering > target_steering)
                 target_steering += 0.01; // Adjust steering to the right
-        } else //
+        }
+        else //
         {
             target_steering = expected_target_steering; // Use the expected steering angle
         }
@@ -1222,15 +1321,18 @@ void Master::urban_move2(float vx, float vy, float wz, int8_t oto)
             target_velocity = fminf(target_velocity, min_vel_belokan_); // Set minimum velocity for curved roads
 
         //* DETEKSI ZEBRA CROSS, JIKA VALID, MAKA BERHENTI
-        if (zebracros_horizontal_valid) {
+        if (zebracros_horizontal_valid)
+        {
             logger.warn("zebracros_horizontal_valid");
-            if (dist_near_zebracross_horizontal < jarak_ke_zebracros_) {
+            if (dist_near_zebracross_horizontal < jarak_ke_zebracros_)
+            {
                 urban_fsm.value = 1; // Transition to the next state
                 status_berhenti = 1; // Berhenti karena zebra cross horizontal
                 start_time_berhenti = time_now;
                 break;
             }
-        } else if (target_putih_valid && !zebracros_horizontal_valid && !sign_pole_valid) //* ZEBRACROSS TIDAK KELIHATAN (BELOK KANAN KHUSUS)
+        }
+        else if (target_putih_valid && !zebracros_horizontal_valid && !sign_pole_valid) //* ZEBRACROSS TIDAK KELIHATAN (BELOK KANAN KHUSUS)
         {
             // logger.warn("target_putih_valid && !zebracros_horizontal_valid && !sign_pole_valid");
 
@@ -1254,45 +1356,57 @@ void Master::urban_move2(float vx, float vy, float wz, int8_t oto)
             //         break; // Exit the switch case
             //     }
             // }
-        } else if (!target_putih_valid && !zebracros_horizontal_valid && sign_pole_valid) {
+        }
+        else if (!target_putih_valid && !zebracros_horizontal_valid && sign_pole_valid)
+        {
             logger.warn("Tidak ada putih/zebra: %.2f || sign %d", fabs(centroid_sign[1]), final_sign_detected_status);
 
             //* KASUS KHUSUS
-            if (final_sign_detected_status == -1) {
+            if (final_sign_detected_status == -1)
+            {
                 //* ANGGAPANNYA ADA OBSTACLE
                 static float target_steering_prev = 0;
                 target_steering = atan2(urban_data.centroid_sign_x + 0.2, urban_data.centroid_sign_y);
 
-                if (fabs(centroid_sign[1]) < 0.3) {
+                if (fabs(centroid_sign[1]) < 0.3)
                     target_steering = target_steering_prev;
-                }
                 target_steering_prev = target_steering; // Update previous steering angle
-            } else {
+            }
+            else
+            {
                 //! ===================
                 //! CASE BERBAHAYA
                 //! ===================
-                if (final_sign_detected_status == ARUCO_STOP || final_sign_detected_status == ARUCO_NO_ENTRY || final_sign_detected_status == ARUCO_DEAD_END) {
+                if (final_sign_detected_status == ARUCO_STOP || final_sign_detected_status == ARUCO_NO_ENTRY || final_sign_detected_status == ARUCO_DEAD_END)
+                {
                     //* SIGN BERSTATUS NAMUN TIDAK ADA ZEBRCROSS
                     target_steering = angle_target_sign; // Use the expected steering angle
 
-                    if (fabs(centroid_sign[1]) < jarak_ke_sign_pole_) {
+                    if (fabs(centroid_sign[1]) < jarak_ke_sign_pole_)
+                    {
                         urban_fsm.value = 13; // Transition to the next state
                         break;
                     }
                 }
             }
-        } else if (zebracros_horizontal_valid && !sign_pole_valid_running && target_putih_valid) {
+        }
+        else if (zebracros_horizontal_valid && !sign_pole_valid_running && target_putih_valid)
+        {
             logger.warn("Zebra cross horizontal valid, but no sign pole detected and target_putih_valid");
-            if (dist_near_zebracross_horizontal < jarak_ke_zebracros_) {
+            if (dist_near_zebracross_horizontal < jarak_ke_zebracros_)
+            {
                 // zebracross_tanpa_sign = 1;
                 urban_fsm.value = 1; // Transition to the next state
                 status_berhenti = 1; // Berhenti karena zebra cross horizontal
                 start_time_berhenti = time_now;
                 break;
             }
-        } else if (zebracros_horizontal_valid && !sign_pole_valid_running && !target_putih_valid) {
+        }
+        else if (zebracros_horizontal_valid && !sign_pole_valid_running && !target_putih_valid)
+        {
             logger.warn("Zebra cross horizontal valid, but no sign or target putih detected");
-            if (dist_near_zebracross_horizontal < jarak_ke_zebracros_) {
+            if (dist_near_zebracross_horizontal < jarak_ke_zebracros_)
+            {
                 urban_fsm.value = 1; // Transition to the next state
                 status_berhenti = 1; // Berhenti karena zebra cross horizontal
                 start_time_berhenti = time_now;
@@ -1315,11 +1429,14 @@ void Master::urban_move2(float vx, float vy, float wz, int8_t oto)
         //! ==================================
         //! CASE BAHAYA (GUNAKAN JIKA DI AWAL START BERADA DI TEMPAT TIDAK ADA ZEBRACROSS)
         //! ==================================
-        if (sign_pole_valid_running && dist_near_zebracross_horizontal > 0.5) {
-            if (first_time) {
+        if (sign_pole_valid_running && dist_near_zebracross_horizontal > 0.5)
+        {
+            if (first_time)
+            {
                 logger.warn("sign_pole_valid_running %.2f", dist_sign_pole);
-                if (sign_pole_valid && dist_sign_pole < 0.3 && final_sign_detected_status != -1) {
-                    urban_fsm.value = 2; // Transition to the next state
+                if (sign_pole_valid && dist_sign_pole < 0.3 && final_sign_detected_status != -1)
+                {
+                    urban_fsm.value = 2;      // Transition to the next state
                     pos_enc_stop = enc_meter; // Reset travel distance after stop
                     start_time_berhenti = time_now;
                     first_time = 0;
@@ -1332,10 +1449,13 @@ void Master::urban_move2(float vx, float vy, float wz, int8_t oto)
         //! ==================================
         //! CASE BAHAYA
         //! ==================================
-        if (!ada_obs) {
+        if (!ada_obs)
+        {
 
-            if (final_sign_detected_status == ARUCO_STOP || final_sign_detected_status == ARUCO_NO_ENTRY || final_sign_detected_status == ARUCO_DEAD_END) {
-                if (sign_pole_valid && dist_sign_pole < 0.3) {
+            if (final_sign_detected_status == ARUCO_STOP || final_sign_detected_status == ARUCO_NO_ENTRY || final_sign_detected_status == ARUCO_DEAD_END)
+            {
+                if (sign_pole_valid && dist_sign_pole < 0.3)
+                {
                     urban_fsm.value = 99; // Transition to the next state
                     break;
                 }
@@ -1344,27 +1464,26 @@ void Master::urban_move2(float vx, float vy, float wz, int8_t oto)
         //! ==================================
 
         //* DETEKSI SIGN
-        if (sign_detected_status != -1 /*  && sign_pole_valid */) {
+        if (sign_detected_status != -1 /*  && sign_pole_valid */)
+        {
             detected_sign_array.push_back(sign_detected_status);
-            if (detected_sign_array.size() > 40) {
+            if (detected_sign_array.size() > 40)
                 detected_sign_array.erase(detected_sign_array.begin());
-            }
         }
 
         //* POLLING SIGN STATUS
-        if (detected_sign_array.size() >= 20) {
+        if (detected_sign_array.size() >= 20)
+        {
             int count = 0;
-            for (int i = 0; i < detected_sign_array.size(); i++) {
-                if (detected_sign_array[i] == detected_sign_array[0]) {
+            for (int i = 0; i < detected_sign_array.size(); i++)
+                if (detected_sign_array[i] == detected_sign_array[0])
                     count++;
-                }
-            }
-            if (count >= 19) {
+            if (count >= 19)
                 final_sign_detected_status = detected_sign_array[10]; // Set final sign detected status
-            }
         }
 
-        if (use_debug) {
+        if (use_debug)
+        {
             logger.error("========= use_debug =============: %d", idx_sign_detected);
             final_sign_detected_status = sign_array_debug[idx_sign_detected]; // Set final sign detected status from hardcode array
         }
@@ -1394,18 +1513,17 @@ void Master::urban_move2(float vx, float vy, float wz, int8_t oto)
         logger.info("fsm: %d || %d %d %d", urban_fsm.value, zebracross_tanpa_sign, zebracross_tanpa_sign_tanpa_putih, use_debug);
 
         //* DETEKSI SIGN
-        if (sign_detected_status != -1 && sign_pole_valid) {
+        if (sign_detected_status != -1 && sign_pole_valid)
+        {
             detected_sign_array.push_back(sign_detected_status);
-            if (detected_sign_array.size() > 40) {
+            if (detected_sign_array.size() > 40)
                 detected_sign_array.erase(detected_sign_array.begin());
-            }
         }
 
-        if (!sign_pole_valid && target_putih_valid) {
+        if (!sign_pole_valid && target_putih_valid)
             zebracross_tanpa_sign = 1;
-        } else {
+        else
             zebracross_tanpa_sign = 0;
-        }
 
         logger.warn("final_sign_detected_status: %d", final_sign_detected_status);
 
@@ -1416,20 +1534,19 @@ void Master::urban_move2(float vx, float vy, float wz, int8_t oto)
         // }
 
         //* TUNGGU SELAMA 3 DETIK
-        if (time_now - start_time_berhenti > 3100) {
+        if (time_now - start_time_berhenti > 3100)
+        {
             // check if detected_sign_array size is 5 and contains the same sign
 
             //* POLLING SIGN STATUS AUTO
-            if (final_sign_detected_status == -1) {
+            if (final_sign_detected_status == -1)
+            {
                 int count = 0;
-                for (int i = 0; i < detected_sign_array.size(); i++) {
-                    if (detected_sign_array[i] == detected_sign_array[0]) {
+                for (int i = 0; i < detected_sign_array.size(); i++)
+                    if (detected_sign_array[i] == detected_sign_array[0])
                         count++;
-                    }
-                }
-                if (count == detected_sign_array.size() && count >= 10) {
+                if (count == detected_sign_array.size() && count >= 10)
                     final_sign_detected_status = detected_sign_array[0]; // Set final sign detected status
-                }
             }
 
             //! ==============
@@ -1451,15 +1568,16 @@ void Master::urban_move2(float vx, float vy, float wz, int8_t oto)
             //! ==============
             //! CASE BAHAYA
             //! ==============
-            if (dist_sign_pole > 0.5) {
+            if (dist_sign_pole > 0.5)
+            {
                 logger.warn("=== ada zebra tapi sign jauh ==");
 
-                if (final_sign_detected_status == -1) {
+                if (final_sign_detected_status == -1)
                     final_sign_detected_status = debug_zebracros_tanpa_sign[0];
-                }
             }
 
-            if (use_debug) {
+            if (use_debug)
+            {
                 logger.error("========= use_debug =============: %d", idx_sign_detected);
                 final_sign_detected_status = sign_array_debug[idx_sign_detected]; // Set final sign detected status from hardcode array
             }
@@ -1467,50 +1585,56 @@ void Master::urban_move2(float vx, float vy, float wz, int8_t oto)
             //! ==============
 
             //* SIGN TERDETEKSI
-            if (final_sign_detected_status != -1) {
-                urban_fsm.value = 2; // Transition to the next state after 2 seconds
+            if (final_sign_detected_status != -1)
+            {
+                urban_fsm.value = 2;      // Transition to the next state after 2 seconds
                 pos_enc_stop = enc_meter; // Reset travel distance after stop
-            } else {
-                if (sign_pole_valid && (time_now - start_time_berhenti > 5100)) {
-                    logger.warn("Tidak ada sign terdeteksi, mundur sedikit");
-                    //* mundur sedikit
-                    urban_fsm.value = 12; // Transition to the next state after 2 seconds
-                    pos_enc_stop = enc_meter; // Reset travel distance after stop
-                }
+            }
+            else if (sign_pole_valid && (time_now - start_time_berhenti > 5100))
+            {
+                logger.warn("Tidak ada sign terdeteksi, mundur sedikit");
+                //* mundur sedikit
+                urban_fsm.value = 12;     // Transition to the next state after 2 seconds
+                pos_enc_stop = enc_meter; // Reset travel distance after stop
             }
         }
 
-        if (debug_mode_ == 2) {
+        if (debug_mode_ == 2)
             logger.info("last %.2f > curr %.2f > filter %.2f || target: %.2f - %.2f",
-                fabs(last_gyro_stop), curr_gyro_deg, filtered_gyro_deg,
-                target_steering, target_velocity);
-        }
+                        fabs(last_gyro_stop), curr_gyro_deg, filtered_gyro_deg,
+                        target_steering, target_velocity);
 
         break;
     case 11: //* CASE ANOMALY ZEBRACROSS TANPA SIGN
 
-        if (zebracros_vertical_valid && dist_zebra_cross_kanan < 1.0) {
+        if (zebracros_vertical_valid && dist_zebra_cross_kanan < 1.0)
+        {
             //* ADA BELOKAN KE KIRI
             final_sign_detected_status = ARUCO_TURN_LEFT; // Set final sign detected status to turn left
-        } else if (zebracros_vertical_valid && dist_zebra_cross_kiri < 1.0) {
+        }
+        else if (zebracros_vertical_valid && dist_zebra_cross_kiri < 1.0)
+        {
             //* ADA BELOKAN KE KANAN
             final_sign_detected_status = ARUCO_TURN_RIGHT; // Set final sign detected status to turn right
-        } else {
+        }
+        else
+        {
             final_sign_detected_status = debug_zebracros_tanpa_sign[0]; // Set final sign detected status from hardcode array
         }
 
         pos_enc_stop = enc_meter; // Reset travel distance after stop
-        urban_fsm.value = 2; // Transition to the next state
+        urban_fsm.value = 2;      // Transition to the next state
 
         break;
     case 12:
         //* MUNDUR SEDIKIT
         target_velocity = -0.1; // Set target velocity to reverse
-        target_steering = 0; // Set target steering to straight
+        target_steering = 0;    // Set target steering to straight
 
         travel_dist_after_stop = fabs(enc_meter - pos_enc_stop); // Calculate travel distance after stop
 
-        if (travel_dist_after_stop > 0.2) {
+        if (travel_dist_after_stop > 0.2)
+        {
             target_velocity = 0; // Stop if travel distance is greater than 0.1
             urban_fsm.value = 0; // Transition to the next state
             idx_sign_detected++;
@@ -1525,11 +1649,11 @@ void Master::urban_move2(float vx, float vy, float wz, int8_t oto)
         break;
     case 13: //* CASE SIGN TANPA ZEBRACROSS
 
-        if (use_debug) {
+        if (use_debug)
             final_sign_detected_status = sign_array_debug[idx_sign_detected]; // Set final sign detected status from hardcode array
-        }
 
-        if (final_sign_detected_status != -1) {
+        if (final_sign_detected_status != -1)
+        {
             pos_enc_stop = enc_meter; // Reset travel distance after stop
             last_gyro_stop = 0;
             urban_fsm.value = 2; // Transition to the next state
@@ -1544,94 +1668,113 @@ void Master::urban_move2(float vx, float vy, float wz, int8_t oto)
         //     break;
         // }
 
-        if (final_sign_detected_status == ARUCO_STOP || final_sign_detected_status == ARUCO_NO_ENTRY || final_sign_detected_status == ARUCO_DEAD_END) {
+        if (final_sign_detected_status == ARUCO_STOP || final_sign_detected_status == ARUCO_NO_ENTRY || final_sign_detected_status == ARUCO_DEAD_END)
+        {
             urban_fsm.value = 99; // Transition to the next state
             break;
         }
 
         break;
     case 2: //* CASE BELOK MENGIKUTI RAMBU
-        if (use_debug) {
+        if (use_debug)
             final_sign_detected_status = sign_array_debug[idx_sign_detected]; // Set final sign detected status from hardcode array
-        }
 
         logger.warn("final_sign_detected_status: %d", final_sign_detected_status);
 
         //* RESET ADA ZEBRACROSS DI DEPAN
         ada_zebracross_didepan = 0;
 
-        if (final_sign_detected_status == ARUCO_TURN_LEFT) {
+        if (final_sign_detected_status == ARUCO_TURN_LEFT)
+        {
             max_encoder_maju = encoder_maju_kiri_;
             min_jarak_ke_putih_ = min_jarak_putih_kiri_;
-        } else if (final_sign_detected_status == ARUCO_TURN_RIGHT) {
+        }
+        else if (final_sign_detected_status == ARUCO_TURN_RIGHT)
+        {
             max_encoder_maju = encoder_maju_kanan_;
             min_jarak_ke_putih_ = min_jarak_putih_kanan_;
-        } else if (final_sign_detected_status == ARUCO_FORWARD) {
+        }
+        else if (final_sign_detected_status == ARUCO_FORWARD)
+        {
             target_velocity = 0;
             max_encoder_maju = 0.0;
             min_jarak_ke_putih_ = 9999.0;
             urban_fsm.value = 31; // Transition to the next state
-            break; // Stop processing further in this case
-        } else if (final_sign_detected_status == ARUCO_STOP) {
+            break;                // Stop processing further in this case
+        }
+        else if (final_sign_detected_status == ARUCO_STOP)
+        {
             target_velocity = 0;
             max_encoder_maju = 0.0;
             min_jarak_ke_putih_ = 9999.0;
             urban_fsm.value = 100; // Transition to the next state
-            break; // Stop processing further in this case
-        } else if (final_sign_detected_status == ARUCO_DEAD_END) {
+            break;                 // Stop processing further in this case
+        }
+        else if (final_sign_detected_status == ARUCO_DEAD_END)
+        {
             target_velocity = 0;
             max_encoder_maju = 0.0;
             min_jarak_ke_putih_ = 9999.0;
             urban_fsm.value = 100; // Transition to the next state
-            break; // Stop processing further in this case
-        } else if (final_sign_detected_status == ARUCO_NO_ENTRY) {
+            break;                 // Stop processing further in this case
+        }
+        else if (final_sign_detected_status == ARUCO_NO_ENTRY)
+        {
             target_velocity = 0;
             max_encoder_maju = 0.0;
             min_jarak_ke_putih_ = 9999.0;
             urban_fsm.value = 100; // Transition to the next state
-            break; // Stop processing further in this case
+            break;                 // Stop processing further in this case
         }
 
         //* GERAK MENGIKUTI TARGET JIKA VALID (PRIORITAS TARGET UNGU > TARGET PUTIH)
-        if (target_putih_valid) {
+        if (target_putih_valid)
+        {
             status_steering = 1; // Steering karena target putih valid
             expected_target_steering = angle_target_putih;
-        } else {
+        }
+        else
+        {
             status_steering = 2; // Steering karena target ungu valid
             expected_target_steering = 0.5 DEG2RAD;
         }
 
         //* PERHALUS PERGERAKAN STEERING
-        if (fabs(expected_target_steering) > 15 DEG2RAD) {
+        if (fabs(expected_target_steering) > 15 DEG2RAD)
+        {
             if (expected_target_steering < target_steering)
                 target_steering -= 0.009; // Adjust steering to the left
             else if (expected_target_steering > target_steering)
                 target_steering += 0.009; // Adjust steering to the right
-        } else {
+        }
+        else
+        {
             target_steering = expected_target_steering; // Use the expected steering angle
         }
         last_dist_zebracross_kiri = dist_zebra_cross_kiri; // Update last seen zebra cross distance
 
-        if (fabs(prev_dist_putih - urban_data.dist_putih_meter) > 0.1) {
+        if (fabs(prev_dist_putih - urban_data.dist_putih_meter) > 0.1)
             logger.error("========= ANOMALI ==========");
-        }
         logger.info("%.2f", fabs(prev_dist_putih - urban_data.dist_putih_meter));
 
         //* PILIH TARGET UNTUK BELOK
         if (target_putih_valid) //* DENGAN TARGET PUTIH
         {
-            if (urban_data.dist_putih_meter < min_jarak_ke_putih_) {
+            if (urban_data.dist_putih_meter < min_jarak_ke_putih_)
+            {
                 status_berbelok = 1;
-                urban_fsm.value = 3; // Transition to the next state
+                urban_fsm.value = 3;      // Transition to the next state
                 pos_enc_stop = enc_meter; // Reset travel distance after stop
                 break;
             }
-        } else //* DENGAN TARGET ENCODER
+        }
+        else //* DENGAN TARGET ENCODER
         {
             travel_dist_after_stop = enc_meter - pos_enc_stop; // Calculate travel distance after stop
-            if (travel_dist_after_stop > max_encoder_maju) {
+            if (travel_dist_after_stop > max_encoder_maju)
+            {
                 status_berbelok = 2;
-                urban_fsm.value = 3; // Transition to the next state
+                urban_fsm.value = 3;      // Transition to the next state
                 pos_enc_stop = enc_meter; // Reset travel distance after stop
                 break;
             }
@@ -1662,14 +1805,17 @@ void Master::urban_move2(float vx, float vy, float wz, int8_t oto)
         status_steering = 3;
         // Steering karena hardcode
 
-        if (final_sign_detected_status == ARUCO_TURN_LEFT) {
+        if (final_sign_detected_status == ARUCO_TURN_LEFT)
+        {
             max_encoder_belok = encoder_belok_kiri_;
             target_steering = derajat_steering_kiri_ DEG2RAD;
             max_delta_derajat_gyro = derajat_gyro_kiri_;
             normal_steering = derajat_steering_kiri_ DEG2RAD;
 
             ungu_belok_valid = (urban_data.target_angle_ungu > 0);
-        } else if (final_sign_detected_status == ARUCO_TURN_RIGHT) {
+        }
+        else if (final_sign_detected_status == ARUCO_TURN_RIGHT)
+        {
             max_encoder_belok = encoder_belok_kanan_;
             target_steering = derajat_steering_kanan_ DEG2RAD;
             max_delta_derajat_gyro = derajat_gyro_kanan_;
@@ -1677,8 +1823,9 @@ void Master::urban_move2(float vx, float vy, float wz, int8_t oto)
             ungu_belok_valid_2 = (urban_data.target_angle_ungu > 0);
 
             normal_steering = derajat_steering_kanan_ DEG2RAD;
-
-        } else if (final_sign_detected_status == ARUCO_FORWARD) {
+        }
+        else if (final_sign_detected_status == ARUCO_FORWARD)
+        {
             urban_fsm.value = 31; // Transition to the next state
             break;
         }
@@ -1687,16 +1834,22 @@ void Master::urban_move2(float vx, float vy, float wz, int8_t oto)
         // logger.info("last seen zebra kiri: %.2f - %.2f | status: %d", last_dist_zebracross_kiri, dist_zebra_cross_kiri, status_berbelok);
 
         //* PAKAI GYRO
-        if (debug_mode_ == 2 || debug_mode_ == 0) {
-            if (fabs(last_gyro_stop) > max_delta_derajat_gyro) {
-                if (ungu_belok_valid) {
+        if (debug_mode_ == 2 || debug_mode_ == 0)
+        {
+            if (fabs(last_gyro_stop) > max_delta_derajat_gyro)
+            {
+                if (ungu_belok_valid)
+                {
                     status_steering = 2; // Steering karena target ungu valid
                     target_steering = angle_target_ungu;
-                } else {
+                }
+                else
+                {
                     target_steering = normal_steering;
                 }
 
-                if (sign_pole_valid_running && (sign_detected_status == ARUCO_STOP)) {
+                if (sign_pole_valid_running && (sign_detected_status == ARUCO_STOP))
+                {
                     logger.info("========= MASUK SINI ==========");
                     target_steering = angle_target_sign;
                     urban_fsm.value = 99;
@@ -1704,14 +1857,15 @@ void Master::urban_move2(float vx, float vy, float wz, int8_t oto)
                 }
             }
 
-            if ((fabs(last_gyro_stop) > last_gyro_angle_)) {
+            if ((fabs(last_gyro_stop) > last_gyro_angle_))
+            {
                 // reset sign status
 
                 sign_detected_status = -1;
                 final_sign_detected_status = -1;
                 detected_sign_array.clear(); // Clear the detected sign array
-                curr_gyro_deg = 0; // Reset current gyro degree
-                urban_fsm.value = 0; // Transition to the next state
+                curr_gyro_deg = 0;           // Reset current gyro degree
+                urban_fsm.value = 0;         // Transition to the next state
                 idx_sign_detected++;
                 idx_zebracross_tanpa_sign++;
                 idx_dead_end++;
@@ -1723,18 +1877,24 @@ void Master::urban_move2(float vx, float vy, float wz, int8_t oto)
         }
 
         //* PAKAI ENCODER
-        if (debug_mode_ == 1 || debug_mode_ == 0) {
+        if (debug_mode_ == 1 || debug_mode_ == 0)
+        {
             //! SAFETY ENCODER
             // logger.info("travel_dist_after_stop: %.2f - %.2f", travel_dist_after_stop, max_encoder_belok);
-            if (travel_dist_after_stop > max_encoder_belok) {
-                if (ungu_belok_valid) {
+            if (travel_dist_after_stop > max_encoder_belok)
+            {
+                if (ungu_belok_valid)
+                {
                     status_steering = 2; // Steering karena target ungu valid
                     target_steering = angle_target_ungu;
-                } else {
+                }
+                else
+                {
                     target_steering = normal_steering;
                 }
 
-                if (sign_pole_valid_running && (sign_detected_status == ARUCO_STOP)) {
+                if (sign_pole_valid_running && (sign_detected_status == ARUCO_STOP))
+                {
                     logger.info("========= MASUK SINI ==========");
                     target_steering = angle_target_sign;
                     urban_fsm.value = 99;
@@ -1743,8 +1903,8 @@ void Master::urban_move2(float vx, float vy, float wz, int8_t oto)
                 sign_detected_status = -1;
                 final_sign_detected_status = -1;
                 detected_sign_array.clear(); // Clear the detected sign array
-                curr_gyro_deg = 0; // Reset current gyro degree
-                urban_fsm.value = 0; // Transition to the next state
+                curr_gyro_deg = 0;           // Reset current gyro degree
+                urban_fsm.value = 0;         // Transition to the next state
                 idx_sign_detected++;
                 idx_zebracross_tanpa_sign++;
                 idx_dead_end++;
@@ -1754,15 +1914,20 @@ void Master::urban_move2(float vx, float vy, float wz, int8_t oto)
                 break;
             }
 
-            if (travel_dist_after_stop > max_encoder_belok * 0.85) {
-                if (ungu_belok_valid_2) {
+            if (travel_dist_after_stop > max_encoder_belok * 0.85)
+            {
+                if (ungu_belok_valid_2)
+                {
                     status_steering = 2; // Steering karena target ungu valid
                     target_steering = angle_target_ungu;
-                } else {
+                }
+                else
+                {
                     target_steering = normal_steering;
                 }
 
-                if (sign_pole_valid_running && (sign_detected_status == ARUCO_STOP)) {
+                if (sign_pole_valid_running && (sign_detected_status == ARUCO_STOP))
+                {
                     logger.info("========= MASUK SINI ==========");
                     target_steering = angle_target_sign;
                     urban_fsm.value = 99;
@@ -1776,39 +1941,39 @@ void Master::urban_move2(float vx, float vy, float wz, int8_t oto)
         msg_curr_gyro_deg.data = fabs(last_gyro_stop);
         pub_curr_gyro_deg->publish(msg_curr_gyro_deg);
 
-        if (debug_mode_ != 0) {
+        if (debug_mode_ != 0)
             logger.info("fsm: %d [%d] [%d] || enc: %.2f > %.2f || gyro: %.2f > %.2f > %.2f || target: %.2f - %.2f",
-                urban_fsm.value, debug_mode_, final_sign_detected_status,
-                travel_dist_after_stop, max_encoder_belok,
-                fabs(last_gyro_stop), max_delta_derajat_gyro, last_gyro_angle_,
-                target_steering, target_velocity);
-        }
+                        urban_fsm.value, debug_mode_, final_sign_detected_status,
+                        travel_dist_after_stop, max_encoder_belok,
+                        fabs(last_gyro_stop), max_delta_derajat_gyro, last_gyro_angle_,
+                        target_steering, target_velocity);
 
         break;
     }
-    case 31: //* CASE LURUS
+    case 31:                 //* CASE LURUS
         target_steering = 0; // Set steering to zero for going straight
         status_steering = 3; // Steering karena hardcode
         travel_dist_after_stop = enc_meter - pos_enc_stop;
 
-        if (target_putih_valid && dist_target_putih > 0.1) {
+        if (target_putih_valid && dist_target_putih > 0.1)
+        {
             target_steering = (angle_target_putih); // Use the target putih angle if valid
-            status_steering = 1; // Steering karena target putih valid
+            status_steering = 1;                    // Steering karena target putih valid
         }
 
-        if (target_putih_valid && dist_target_putih > 0.4) {
+        if (target_putih_valid && dist_target_putih > 0.4)
             pos_enc_stop = enc_meter; // Reset travel distance after stop
-        }
 
         logger.info("travel_dist_after_stop: %.2f", travel_dist_after_stop);
 
-        if (!zebracros_valid && (travel_dist_after_stop > encoder_maju_lurus_)) {
+        if (!zebracros_valid && (travel_dist_after_stop > encoder_maju_lurus_))
+        {
             // reset sign status
             sign_detected_status = -1;
             final_sign_detected_status = -1;
             detected_sign_array.clear(); // Clear the detected sign array
-            curr_gyro_deg = 0; // Reset current gyro degree
-            urban_fsm.value = 0; // Transition to the next state
+            curr_gyro_deg = 0;           // Reset current gyro degree
+            urban_fsm.value = 0;         // Transition to the next state
             idx_sign_detected++;
             idx_zebracross_tanpa_sign++;
             idx_dead_end++;
@@ -1824,15 +1989,18 @@ void Master::urban_move2(float vx, float vy, float wz, int8_t oto)
         target_steering = derajat_steering_kanan_ DEG2RAD;
         last_gyro_stop += fb_final_vel_dxdydo[2] * 0.02 RAD2DEG; // Update gyro based on the angular velocity
 
-        if (fabs(last_gyro_stop) > derajat_gyro_kanan_) {
-            if ((urban_data.target_angle_ungu < 0)) {
+        if (fabs(last_gyro_stop) > derajat_gyro_kanan_)
+        {
+            if ((urban_data.target_angle_ungu < 0))
+            {
                 status_steering = 2; // Steering karena target ungu valid
                 target_steering = angle_target_ungu;
             }
         }
 
-        if ((fabs(last_gyro_stop) > 80)) {
-            curr_gyro_deg = 0; // Reset current gyro degree
+        if ((fabs(last_gyro_stop) > 80))
+        {
+            curr_gyro_deg = 0;   // Reset current gyro degree
             urban_fsm.value = 0; // Transition to the next state
             idx_sign_detected++;
             idx_zebracross_tanpa_sign++;
@@ -1846,15 +2014,18 @@ void Master::urban_move2(float vx, float vy, float wz, int8_t oto)
         target_steering = 32 DEG2RAD;
         last_gyro_stop += fb_final_vel_dxdydo[2] * 0.02 RAD2DEG; // Update gyro based on the angular velocity
 
-        if (fabs(last_gyro_stop) > derajat_gyro_kanan_) {
-            if ((urban_data.target_angle_ungu > 0)) {
+        if (fabs(last_gyro_stop) > derajat_gyro_kanan_)
+        {
+            if ((urban_data.target_angle_ungu > 0))
+            {
                 status_steering = 2; // Steering karena target ungu valid
                 target_steering = angle_target_ungu;
             }
         }
 
-        if ((fabs(last_gyro_stop) > 78)) {
-            curr_gyro_deg = 0; // Reset current gyro degree
+        if ((fabs(last_gyro_stop) > 78))
+        {
+            curr_gyro_deg = 0;   // Reset current gyro degree
             urban_fsm.value = 0; // Transition to the next state
             idx_sign_detected++;
             idx_zebracross_tanpa_sign++;
@@ -1868,28 +2039,35 @@ void Master::urban_move2(float vx, float vy, float wz, int8_t oto)
     case 33: //* CASE DEAD END dan NO ENTRY
     {
         //* GERAK MENGIKUTI TARGET JIKA VALID (PRIORITAS TARGET UNGU > TARGET PUTIH)
-        if (target_putih_valid) {
+        if (target_putih_valid)
+        {
             status_steering = 1; // Steering karena target putih valid
             expected_target_steering = angle_target_putih;
-        } else if (target_edge_valid) {
+        }
+        else if (target_edge_valid)
+        {
             status_steering = 2; // Steering karena target ungu valid
             expected_target_steering = angle_target_ungu;
         }
 
         //* PERHALUS PERGERAKAN STEERING
-        if (fabs(expected_target_steering) > 15 DEG2RAD) {
+        if (fabs(expected_target_steering) > 15 DEG2RAD)
+        {
             if (expected_target_steering < target_steering)
                 target_steering -= 0.009; // Adjust steering to the left
             else if (expected_target_steering > target_steering)
                 target_steering += 0.009; // Adjust steering to the right
-        } else {
+        }
+        else
+        {
             target_steering = expected_target_steering; // Use the expected steering angle
         }
 
         travel_dist_after_stop = enc_meter - pos_enc_stop;
         final_sign_detected_status = debug_dead_end[0]; // Set final sign detected status
 
-        if (travel_dist_after_stop > encoder_maju_dead_end_) {
+        if (travel_dist_after_stop > encoder_maju_dead_end_)
+        {
             last_gyro_stop = 0;
             urban_fsm.value = 2; // Transition to the next state
         }
@@ -1899,13 +2077,11 @@ void Master::urban_move2(float vx, float vy, float wz, int8_t oto)
     case 99: //* CASE STOP
         target_steering = 0;
 
-        if (sign_pole_valid_running) {
+        if (sign_pole_valid_running)
             target_steering = angle_target_sign; // Use the target sign angle if valid
-        }
 
-        if (dist_sign_pole < 0.3 && sign_pole_valid) {
+        if (dist_sign_pole < 0.3 && sign_pole_valid)
             urban_fsm.value = 100; // Transition to the next state
-        }
 
         break;
     case 100:
@@ -2379,22 +2555,21 @@ int8_t Master::control_steering(float vx, float target_steering_local)
     float dy = fb_final_pose_xyo[1] - prev_y;
 
     float calc_steering = atan2(dy, dx) - fb_final_pose_xyo[2];
-    while (calc_steering < -M_PI) {
+    while (calc_steering < -M_PI)
         calc_steering += 2 * M_PI; // Normalize to [-pi, pi]
-    }
-    while (calc_steering > M_PI) {
+
+    while (calc_steering > M_PI)
         calc_steering -= 2 * M_PI; // Normalize to [-pi, pi]
-    }
+
     float error_steering = target_steering_local - calc_steering;
-    while (error_steering < -M_PI) {
+    while (error_steering < -M_PI)
         error_steering += 2 * M_PI; // Normalize to [-pi, pi]
-    }
-    while (error_steering > M_PI) {
+
+    while (error_steering > M_PI)
         error_steering -= 2 * M_PI; // Normalize to [-pi, pi]
-    }
 
     float proportional = kp * error_steering;
-    integral += ki * error_steering; // Integral term
+    integral += ki * error_steering;                              // Integral term
     float derivative = kd * (calc_steering - prev_calc_steering); // Derivative term
     float output_steering = proportional + integral + derivative;
 
@@ -2407,14 +2582,17 @@ int8_t Master::control_steering(float vx, float target_steering_local)
     distance_traveled += sqrtf(dx * dx + dy * dy);
 
     // Apply minimal correction if linear movement exceeds 20 cm
-    if (!initial_move && distance_traveled > 0.2) {
+    if (!initial_move && distance_traveled > 0.2)
+    {
         if (fabs(output_steering) < 0.05) // Minimal correction threshold
-        {
+
             output_steering = 0; // Straighten steering for safety
-        }
+
         distance_traveled = 0; // Reset distance tracker
-    } else {
-        initial_move = false; // Disable initial move flag after first iteration
+    }
+    else
+    {
+        initial_move = false;                   // Disable initial move flag after first iteration
         output_steering = prev_output_steering; // Use previous steering if movement is less than 20 cm
     }
 
@@ -2432,14 +2610,15 @@ int8_t Master::move_right(float vx, float max_counter, float target_theta)
     static MachineState fsm;
 
     static float target_steering = 0.46; // Steering angle for moving left
-    static float target_velocity = 0.5; // Target velocity for moving left
+    static float target_velocity = 0.5;  // Target velocity for moving left
 
     static float enc_awal = 0;
     static float enc_sekarang = enc_meter;
 
     fsm.reentry(0, 0.5);
 
-    switch (fsm.value) {
+    switch (fsm.value)
+    {
     case 0:
         enc_awal = enc_meter;
         fsm.value = 1;
@@ -2447,15 +2626,14 @@ int8_t Master::move_right(float vx, float max_counter, float target_theta)
     case 1:
         enc_sekarang = enc_meter;
         target_steering = -0.57; // Steering angle for moving left
-        target_velocity = vx; // Target velocity for moving left
+        target_velocity = vx;    // Target velocity for moving left
 
         // if (enc_sekarang - enc_awal > max_counter) {
         //     fsm.value = 2; // Transition to the next state
         // }
 
-        if (abs(target_theta - (fb_final_pose_xyo[2] * 180 / M_PI)) < 5) {
+        if (abs(target_theta - (fb_final_pose_xyo[2] * 180 / M_PI)) < 5)
             fsm.value = 2;
-        }
 
         break;
     case 2:
@@ -2468,11 +2646,10 @@ int8_t Master::move_right(float vx, float max_counter, float target_theta)
     logger.info("Moving right: %d || %.2f -> %.2f : %.2f", fsm.value, enc_awal, enc_sekarang, enc_sekarang - enc_awal);
     manual_motion(target_velocity, 0, target_steering); // Move right with a slight steering angle
 
-    if (fsm.value == 2) {
+    if (fsm.value == 2)
         return 1;
-    } else {
+    else
         return 0; // Still in the process of moving right
-    }
 }
 
 int8_t Master::move_left(float vx, float max_counter, float target_theta)
@@ -2480,14 +2657,15 @@ int8_t Master::move_left(float vx, float max_counter, float target_theta)
     static MachineState fsm;
 
     static float target_steering = 0.46; // Steering angle for moving left
-    static float target_velocity = 0.5; // Target velocity for moving left
+    static float target_velocity = 0.5;  // Target velocity for moving left
 
     static float enc_awal = 0;
     static float enc_sekarang = enc_meter;
 
     fsm.reentry(0, 0.5);
 
-    switch (fsm.value) {
+    switch (fsm.value)
+    {
     case 0:
         enc_awal = enc_meter;
         fsm.value = 1;
@@ -2495,16 +2673,15 @@ int8_t Master::move_left(float vx, float max_counter, float target_theta)
     case 1:
         enc_sekarang = enc_meter;
         target_steering = 0.57; // Steering angle for moving left
-        target_velocity = vx; // Target velocity for moving left
+        target_velocity = vx;   // Target velocity for moving left
 
         // if (enc_sekarang - enc_awal > max_counter) // Check if the robot has moved 20 cm
         // {
         //     fsm.value = 2; // Transition to the next state
         // }
 
-        if (abs(target_theta - (fb_final_pose_xyo[2] * 180 / M_PI)) < 5) {
+        if (abs(target_theta - (fb_final_pose_xyo[2] * 180 / M_PI)) < 5)
             fsm.value = 2;
-        }
 
         break;
     case 2:
@@ -2517,11 +2694,10 @@ int8_t Master::move_left(float vx, float max_counter, float target_theta)
     logger.info("Moving left: %d || %.2f -> %.2f : %.2f", fsm.value, enc_awal, enc_sekarang, enc_sekarang - enc_awal);
     manual_motion(target_velocity, 0, target_steering); // Move right with a slight steering angle
 
-    if (fsm.value == 2) {
+    if (fsm.value == 2)
         return 1;
-    } else {
+    else
         return 0; // Still in the process of moving right
-    }
 }
 
 int8_t Master::forward_move(float vx, float max_counter)
@@ -2529,27 +2705,27 @@ int8_t Master::forward_move(float vx, float max_counter)
     static MachineState fsm;
 
     static float target_steering = 0.46; // Steering angle for moving left
-    static float target_velocity = 0.5; // Target velocity for moving left
+    static float target_velocity = 0.5;  // Target velocity for moving left
 
     static float enc_awal = 0;
     static float enc_sekarang = enc_meter;
 
     fsm.reentry(0, 0.5);
 
-    switch (fsm.value) {
+    switch (fsm.value)
+    {
     case 0:
         enc_awal = enc_meter;
         fsm.value = 1;
         break;
     case 1:
         enc_sekarang = enc_meter;
-        target_steering = 0; // Steering angle for moving left
+        target_steering = 0;  // Steering angle for moving left
         target_velocity = vx; // Target velocity for moving left
 
         if (enc_sekarang - enc_awal > max_counter) // Check if the robot has moved 20 cm
-        {
+
             fsm.value = 2; // Transition to the next state
-        }
 
         break;
     case 2:
@@ -2568,7 +2744,7 @@ void Master::combine_road_obstacle_pcl()
 {
 }
 
-void Master::combine_road_obstacle_pcl(int8_t* selected_lane_)
+void Master::combine_road_obstacle_pcl(int8_t *selected_lane_)
 {
 }
 

@@ -1,14 +1,14 @@
 #include "rclcpp/rclcpp.hpp"
 #include "std_msgs/msg/int16.hpp"
 
-#include <unistd.h>
-#include <termios.h>
 #include <fcntl.h>
 #include <iostream>
+#include <termios.h>
+#include <unistd.h>
 
 class KeyboardNode : public rclcpp::Node
 {
-public:
+  public:
     rclcpp::Publisher<std_msgs::msg::Int16>::SharedPtr pub_key_pressed;
 
     KeyboardNode() : Node("keyboard_node")
@@ -25,7 +25,7 @@ public:
         resetTerminal(); // Restore terminal to original settings
     }
 
-private:
+  private:
     void timerCallback()
     {
         getKeyPress();

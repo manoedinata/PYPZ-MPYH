@@ -29,13 +29,13 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define PARAMETERS_H_
 
 // default parameters
-#include "rtabmap/core/rtabmap_core_export.h" // DLL export/import defines
 #include "rtabmap/core/Version.h"             // DLL export/import defines
-#include <rtabmap/utilite/UConversion.h>
+#include "rtabmap/core/rtabmap_core_export.h" // DLL export/import defines
+#include <map>
 #include <opencv2/core/version.hpp>
 #include <opencv2/opencv_modules.hpp>
+#include <rtabmap/utilite/UConversion.h>
 #include <string>
-#include <map>
 
 namespace rtabmap
 {
@@ -61,23 +61,32 @@ namespace rtabmap
  *             DummyVideoImageWidth dummyVideoImageWidth;
  * @endcode
  */
-#define RTABMAP_PARAM(PREFIX, NAME, TYPE, DEFAULT_VALUE, DESCRIPTION)               \
-public:                                                                             \
-    static std::string k##PREFIX##NAME() { return std::string(#PREFIX "/" #NAME); } \
-    static TYPE default##PREFIX##NAME() { return (TYPE)DEFAULT_VALUE; }             \
-    static std::string type##PREFIX##NAME() { return std::string(#TYPE); }          \
-                                                                                    \
-private:                                                                            \
-    class Dummy##PREFIX##NAME                                                       \
-    {                                                                               \
-    public:                                                                         \
-        Dummy##PREFIX##NAME()                                                       \
-        {                                                                           \
-            parameters_.insert(ParametersPair(#PREFIX "/" #NAME, #DEFAULT_VALUE));  \
-            parametersType_.insert(ParametersPair(#PREFIX "/" #NAME, #TYPE));       \
-            descriptions_.insert(ParametersPair(#PREFIX "/" #NAME, DESCRIPTION));   \
-        }                                                                           \
-    };                                                                              \
+#define RTABMAP_PARAM(PREFIX, NAME, TYPE, DEFAULT_VALUE, DESCRIPTION)              \
+  public:                                                                          \
+    static std::string k##PREFIX##NAME()                                           \
+    {                                                                              \
+        return std::string(#PREFIX "/" #NAME);                                     \
+    }                                                                              \
+    static TYPE default##PREFIX##NAME()                                            \
+    {                                                                              \
+        return (TYPE)DEFAULT_VALUE;                                                \
+    }                                                                              \
+    static std::string type##PREFIX##NAME()                                        \
+    {                                                                              \
+        return std::string(#TYPE);                                                 \
+    }                                                                              \
+                                                                                   \
+  private:                                                                         \
+    class Dummy##PREFIX##NAME                                                      \
+    {                                                                              \
+      public:                                                                      \
+        Dummy##PREFIX##NAME()                                                      \
+        {                                                                          \
+            parameters_.insert(ParametersPair(#PREFIX "/" #NAME, #DEFAULT_VALUE)); \
+            parametersType_.insert(ParametersPair(#PREFIX "/" #NAME, #TYPE));      \
+            descriptions_.insert(ParametersPair(#PREFIX "/" #NAME, DESCRIPTION));  \
+        }                                                                          \
+    };                                                                             \
     Dummy##PREFIX##NAME dummy##PREFIX##NAME
 // end define PARAM
 
@@ -100,23 +109,32 @@ private:                                                                        
  *             DummyVideoFileName dummyVideoFileName;
  * @endcode
  */
-#define RTABMAP_PARAM_STR(PREFIX, NAME, DEFAULT_VALUE, DESCRIPTION)                 \
-public:                                                                             \
-    static std::string k##PREFIX##NAME() { return std::string(#PREFIX "/" #NAME); } \
-    static std::string default##PREFIX##NAME() { return DEFAULT_VALUE; }            \
-    static std::string type##PREFIX##NAME() { return std::string("string"); }       \
-                                                                                    \
-private:                                                                            \
-    class Dummy##PREFIX##NAME                                                       \
-    {                                                                               \
-    public:                                                                         \
-        Dummy##PREFIX##NAME()                                                       \
-        {                                                                           \
-            parameters_.insert(ParametersPair(#PREFIX "/" #NAME, DEFAULT_VALUE));   \
-            parametersType_.insert(ParametersPair(#PREFIX "/" #NAME, "string"));    \
-            descriptions_.insert(ParametersPair(#PREFIX "/" #NAME, DESCRIPTION));   \
-        }                                                                           \
-    };                                                                              \
+#define RTABMAP_PARAM_STR(PREFIX, NAME, DEFAULT_VALUE, DESCRIPTION)               \
+  public:                                                                         \
+    static std::string k##PREFIX##NAME()                                          \
+    {                                                                             \
+        return std::string(#PREFIX "/" #NAME);                                    \
+    }                                                                             \
+    static std::string default##PREFIX##NAME()                                    \
+    {                                                                             \
+        return DEFAULT_VALUE;                                                     \
+    }                                                                             \
+    static std::string type##PREFIX##NAME()                                       \
+    {                                                                             \
+        return std::string("string");                                             \
+    }                                                                             \
+                                                                                  \
+  private:                                                                        \
+    class Dummy##PREFIX##NAME                                                     \
+    {                                                                             \
+      public:                                                                     \
+        Dummy##PREFIX##NAME()                                                     \
+        {                                                                         \
+            parameters_.insert(ParametersPair(#PREFIX "/" #NAME, DEFAULT_VALUE)); \
+            parametersType_.insert(ParametersPair(#PREFIX "/" #NAME, "string"));  \
+            descriptions_.insert(ParametersPair(#PREFIX "/" #NAME, DESCRIPTION)); \
+        }                                                                         \
+    };                                                                            \
     Dummy##PREFIX##NAME dummy##PREFIX##NAME
 // end define PARAM
 
@@ -139,15 +157,24 @@ private:                                                                        
  * @endcode
  */
 #define RTABMAP_PARAM_COND(PREFIX, NAME, TYPE, COND, DEFAULT_VALUE1, DEFAULT_VALUE2, DESCRIPTION)            \
-public:                                                                                                      \
-    static std::string k##PREFIX##NAME() { return std::string(#PREFIX "/" #NAME); }                          \
-    static TYPE default##PREFIX##NAME() { return COND ? DEFAULT_VALUE1 : DEFAULT_VALUE2; }                   \
-    static std::string type##PREFIX##NAME() { return std::string(#TYPE); }                                   \
+  public:                                                                                                    \
+    static std::string k##PREFIX##NAME()                                                                     \
+    {                                                                                                        \
+        return std::string(#PREFIX "/" #NAME);                                                               \
+    }                                                                                                        \
+    static TYPE default##PREFIX##NAME()                                                                      \
+    {                                                                                                        \
+        return COND ? DEFAULT_VALUE1 : DEFAULT_VALUE2;                                                       \
+    }                                                                                                        \
+    static std::string type##PREFIX##NAME()                                                                  \
+    {                                                                                                        \
+        return std::string(#TYPE);                                                                           \
+    }                                                                                                        \
                                                                                                              \
-private:                                                                                                     \
+  private:                                                                                                   \
     class Dummy##PREFIX##NAME                                                                                \
     {                                                                                                        \
-    public:                                                                                                  \
+      public:                                                                                                \
         Dummy##PREFIX##NAME()                                                                                \
         {                                                                                                    \
             parameters_.insert(ParametersPair(#PREFIX "/" #NAME, COND ? #DEFAULT_VALUE1 : #DEFAULT_VALUE2)); \
@@ -914,7 +941,7 @@ private:                                                                        
         RTABMAP_PARAM(ImuFilter, ComplementaryDoBiasEstimation, bool, true, "Parameter whether to do bias estimation or not.");
         RTABMAP_PARAM(ImuFilter, ComplementaryDoAdpativeGain, bool, true, "Parameter whether to do adaptive gain or not.");
 
-    public:
+      public:
         virtual ~Parameters();
 
         /**
@@ -981,10 +1008,10 @@ private:                                                                        
 
         static std::string createDefaultWorkingDirectory();
 
-    private:
+      private:
         Parameters();
 
-    private:
+      private:
         static ParametersMap parameters_;
         static ParametersMap parametersType_;
         static ParametersMap descriptions_;
@@ -994,6 +1021,6 @@ private:                                                                        
         static ParametersMap backwardCompatibilityMap_;
     };
 
-}
+} // namespace rtabmap
 
 #endif /* PARAMETERS_H_ */

@@ -41,9 +41,10 @@
 
 using namespace std::chrono_literals;
 
-class Detection2Node : public rclcpp::Node {
+class Detection2Node : public rclcpp::Node
+{
 
-private:
+  private:
     rclcpp::CallbackGroup::SharedPtr sub_camera_bgr_rs_group_;
     rclcpp::CallbackGroup::SharedPtr sub_camera_depth_rs_group_;
     rclcpp::CallbackGroup::SharedPtr sub_camera_info_rs_group_;
@@ -118,13 +119,12 @@ private:
     pcl::PointCloud<pcl::PointXYZ> points_camera2base_filtered;
     pcl::PointCloud<pcl::PointXYZ> points_camera2base_filtered_for_sign;
 
-public:
+  public:
     Detection2Node()
-        : Node("detection2_node")
-        , tf_buffer_(this->get_clock())
-        , tf_listener_(tf_buffer_)
+        : Node("detection2_node"), tf_buffer_(this->get_clock()), tf_listener_(tf_buffer_)
     {
-        if (!logger.init()) {
+        if (!logger.init())
+        {
             RCLCPP_ERROR(this->get_logger(), "Failed to initialize logger");
             rclcpp::shutdown();
         }
@@ -198,12 +198,16 @@ public:
             std::bind(&Detection2Node::callback_tim_routine, this),
             tim_routine_group_);
 
-        while (!tf_is_initialized) {
+        while (!tf_is_initialized)
+        {
             rclcpp::sleep_for(1s);
-            try {
+            try
+            {
                 tf_camera_base = tf_buffer_.lookupTransform("base_link", "camera_depth_optical_frame", tf2::TimePointZero);
                 tf_is_initialized = true;
-            } catch (const tf2::TransformException& ex) {
+            }
+            catch (const tf2::TransformException &ex)
+            {
                 RCLCPP_WARN(this->get_logger(), "TF not ready: %s", ex.what());
                 rclcpp::sleep_for(std::chrono::milliseconds(100));
             }
@@ -212,10 +216,11 @@ public:
         RCLCPP_INFO(this->get_logger(), "Detection2 node initialized with multithreading");
     }
 
-private:
+  private:
     void callback_sub_camera_bgr_rs(const sensor_msgs::msg::Image::SharedPtr msg)
     {
-        try {
+        try
+        {
             // // ==================================================================
             // //                        DEBUG VISION CAPTURE
             // // ==================================================================
@@ -232,7 +237,9 @@ private:
             image_bgr_timestamp = msg->header.stamp;
 
             // logger.info("BGR image received: %f", image_bgr_timestamp);
-        } catch (const cv_bridge::Exception& e) {
+        }
+        catch (const cv_bridge::Exception &e)
+        {
             RCLCPP_ERROR(this->get_logger(), "cv_bridge exception: %s", e.what());
             camera_error |= 0x00000001;
         }
@@ -240,7 +247,8 @@ private:
 
     void callback_sub_camera_depth_rs(const sensor_msgs::msg::Image::SharedPtr msg)
     {
-        try {
+        try
+        {
             std::lock_guard<std::mutex> lock(mutex_image_depth);
             auto cv_ptr = cv_bridge::toCvCopy(msg, sensor_msgs::image_encodings::TYPE_16UC1);
             image_depth = cv_ptr->image.clone();
@@ -248,7 +256,9 @@ private:
             image_depth_timestamp = msg->header.stamp;
 
             // logger.info("Depth image received: %f", image_depth_timestamp);
-        } catch (const cv_bridge::Exception& e) {
+        }
+        catch (const cv_bridge::Exception &e)
+        {
             RCLCPP_ERROR(this->get_logger(), "cv_bridge exception: %s", e.what());
             camera_error |= 0x00000010;
         }
@@ -256,14 +266,17 @@ private:
 
     void callback_sub_camera_info_rs(const sensor_msgs::msg::CameraInfo::SharedPtr msg)
     {
-        try {
+        try
+        {
             std::lock_guard<std::mutex> lock(mutex_camera_info);
             camera_matrix = cv::Mat(3, 3, CV_64F, msg->k.data()).clone();
             dist_coeffs = cv::Mat(1, 5, CV_64F, msg->d.data()).clone();
             camera_error &= 0x11111011;
 
             // logger.info("Camera info received: %s", msg->header.frame_id.c_str());
-        } catch (const cv_bridge::Exception& e) {
+        }
+        catch (const cv_bridge::Exception &e)
+        {
             RCLCPP_ERROR(this->get_logger(), "Failed to convert camera info: %s", e.what());
             camera_error |= 0x00000100; // Set error bit for camera info
         }
@@ -271,15 +284,18 @@ private:
 
     void callback_sub_camera_pcl_rs(const sensor_msgs::msg::PointCloud2::SharedPtr msg)
     {
-        try {
-            if (!tf_is_initialized) {
+        try
+        {
+            if (!tf_is_initialized)
+            {
                 RCLCPP_WARN(this->get_logger(), "TF not initialized, skipping point cloud processing");
                 return;
             }
 
             pcl::fromROSMsg(*msg, points_camera);
 
-            if (points_camera.empty()) {
+            if (points_camera.empty())
+            {
                 RCLCPP_WARN(this->get_logger(), "Received empty point cloud");
                 points_camera2base.clear();
                 return;
@@ -299,8 +315,8 @@ private:
             static pcl::CropBox<pcl::PointXYZ> crop_box;
             crop_box.setInputCloud(filtered_z);
             crop_box.setMin(Eigen::Vector4f(0.0, -0.3, 0.05, 1.0)); // In front of robot
-            crop_box.setMax(Eigen::Vector4f(1.5, 0.3, 1.0, 1.0)); // 2m ahead, ±1m wide, max 2m tall
-            crop_box.setNegative(false); // Keep only points inside the box
+            crop_box.setMax(Eigen::Vector4f(1.5, 0.3, 1.0, 1.0));   // 2m ahead, ±1m wide, max 2m tall
+            crop_box.setNegative(false);                            // Keep only points inside the box
             crop_box.filter(points_camera2base_filtered);
 
             // =============== ROAD SIGN DETECTION ===============
@@ -315,7 +331,7 @@ private:
             static pcl::CropBox<pcl::PointXYZ> crop_box_sign;
             crop_box_sign.setInputCloud(filtered_z_sign);
             crop_box_sign.setMin(Eigen::Vector4f(0.02, -1.0, 0.05, 1.0)); // min x, y, z
-            crop_box_sign.setMax(Eigen::Vector4f(1.4, -0.01, 1.0, 1.0)); // max x, y, z
+            crop_box_sign.setMax(Eigen::Vector4f(1.4, -0.01, 1.0, 1.0));  // max x, y, z
             crop_box_sign.setNegative(false);
             crop_box_sign.filter(points_camera2base_filtered_for_sign);
 
@@ -334,7 +350,9 @@ private:
             pub_sign_points->publish(msg_filtered_camera_for_sign);
 
             camera_error &= 0x11110111; // Clear all camera errors
-        } catch (const std::exception& e) {
+        }
+        catch (const std::exception &e)
+        {
             RCLCPP_ERROR(this->get_logger(), "Error processing point cloud: %s", e.what());
             camera_error |= 0x00001000;
         }
@@ -378,11 +396,13 @@ private:
         //? ==================================================
         //?                  Safety Check
         //? ==================================================
-        if (frame_bgr.empty() || frame_depth.empty()) {
+        if (frame_bgr.empty() || frame_depth.empty())
+        {
             logger.warn("Image is empty");
             return;
         }
-        if (image_bgr_timestamp.seconds() < current_time_ros.seconds() - 0.5 || image_depth_timestamp.seconds() < current_time_ros.seconds() - 0.5) {
+        if (image_bgr_timestamp.seconds() < current_time_ros.seconds() - 0.5 || image_depth_timestamp.seconds() < current_time_ros.seconds() - 0.5)
+        {
             logger.warn("Image timestamp is too old (%.2f) (%.2f) (%.2f)", image_bgr_timestamp.seconds(), image_depth_timestamp.seconds(), current_time_ros.seconds());
             return;
         }
@@ -424,15 +444,17 @@ private:
         std::vector<std::vector<cv::Point>> contours;
         cv::findContours(otsu_binary, contours, cv::RETR_EXTERNAL, cv::CHAIN_APPROX_SIMPLE);
 
-        if (contours.empty()) {
+        if (contours.empty())
+        {
             logger.warn("No contours found in the image");
             return;
         }
 
         std::sort(contours.begin(), contours.end(),
-            [](const std::vector<cv::Point>& a, const std::vector<cv::Point>& b) {
-                return cv::contourArea(a) > cv::contourArea(b);
-            });
+                  [](const std::vector<cv::Point> &a, const std::vector<cv::Point> &b)
+                  {
+                      return cv::contourArea(a) > cv::contourArea(b);
+                  });
 
         int largest_contour_area = cv::contourArea(contours[0]);
 
@@ -445,14 +467,15 @@ private:
         //!=============
         //! Nanti diubah
         //!=============
-        for (size_t i = 0; i < contours.size(); i++) {
+        for (size_t i = 0; i < contours.size(); i++)
+        {
             float height = cv::boundingRect(contours[i]).height;
             float width = cv::boundingRect(contours[i]).width;
 
             // put text id and area in cnt location
             cv::putText(debug_frame, std::to_string(width) + " " + std::to_string(height),
-                cv::Point(contours[i][0].x, contours[i][0].y - 10),
-                cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(0, 255, 0), 1);
+                        cv::Point(contours[i][0].x, contours[i][0].y - 10),
+                        cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(0, 255, 0), 1);
 
             // Method 1: Filter contours based on area
             // if (cv::contourArea(contours[i]) < largest_contour_area * 0.7) {
@@ -461,7 +484,8 @@ private:
             // }
 
             // Method 2: Filter contours based on height
-            if (height < 180) {
+            if (height < 180)
+            {
                 removed_contours_idx.push_back(i);
                 continue;
             }
@@ -491,8 +515,7 @@ private:
         //  ==================================================
 
         std::vector<std::pair<int, int>> noise_kernel_sizes = {
-            { 5, 3 }, { 7, 3 }, { 11, 3 }, { 15, 3 }
-        };
+            {5, 3}, {7, 3}, {11, 3}, {15, 3}};
 
         multi_region_horizontal_morphology(hsv_binary, detected_noise, noise_kernel_sizes);
         cv::morphologyEx(detected_noise, detected_noise, cv::MORPH_CLOSE, cv::getStructuringElement(cv::MORPH_RECT, cv::Size(9, 9)));
@@ -513,15 +536,15 @@ private:
         //? ==================================================
         std::vector<cv::Point> point_cloud;
 
-        for (size_t rows = 0; rows < filtered_binary.rows; rows++) {
-            for (size_t cols = 0; cols < filtered_binary.cols; cols++) {
-                if (filtered_binary.at<uint8_t>(rows, cols) > 0) {
+        for (size_t rows = 0; rows < filtered_binary.rows; rows++)
+        {
+            for (size_t cols = 0; cols < filtered_binary.cols; cols++)
+                if (filtered_binary.at<uint8_t>(rows, cols) > 0)
                     point_cloud.emplace_back(cols - center_cam_x, center_cam_y - rows);
-                }
-            }
         }
 
-        if (point_cloud.empty()) {
+        if (point_cloud.empty())
+        {
             logger.warn("No pointcloud found in the image");
             return;
         }
@@ -539,7 +562,8 @@ private:
         double depth_meters = 0.0;
         cv::Point3d world_point = cv::Point3d(0.0, 0.0, 0.0);
 
-        for (const auto& point : point_cloud) {
+        for (const auto &point : point_cloud)
+        {
             if (!std::isfinite(point.x) || !std::isfinite(point.y))
                 continue;
 
@@ -559,12 +583,12 @@ private:
             world_point.z = (-(pixel_y - cy) * depth_meters) / fy;
             world_point.x = depth_meters;
 
-            if (world_point.z < 0.1 && world_point.z > -0.2) {
+            if (world_point.z < 0.1 && world_point.z > -0.2)
                 point_cloud_world.push_back(world_point);
-            }
         }
 
-        if (point_cloud_world.empty()) {
+        if (point_cloud_world.empty())
+        {
             logger.warn("No pointcloud found in the image");
             // return;
         }
@@ -580,14 +604,16 @@ private:
         point_cloud_msg.header.stamp = this->now();
         point_cloud_msg.header.frame_id = "camera_link";
         point_cloud_msg.points.resize(point_cloud_world.size());
-        for (size_t i = 0; i < point_cloud_world.size(); ++i) {
+        for (size_t i = 0; i < point_cloud_world.size(); ++i)
+        {
             point_cloud_msg.points[i].x = point_cloud_world[i].x;
             point_cloud_msg.points[i].y = point_cloud_world[i].y;
             point_cloud_msg.points[i].z = point_cloud_world[i].z;
         }
         pub_point_cloud_3d->publish(point_cloud_msg);
 
-        if (false) {
+        if (false)
+        {
             sensor_msgs::msg::PointCloud2 point_cloud2_msg;
             point_cloud2_msg.header.stamp = this->now();
             point_cloud2_msg.header.frame_id = "camera_link";
@@ -612,15 +638,16 @@ private:
             point_cloud2_msg.row_step = point_cloud2_msg.point_step * point_cloud2_msg.width;
             point_cloud2_msg.data.resize(point_cloud2_msg.row_step * point_cloud2_msg.height);
             point_cloud2_msg.data.resize(point_cloud2_msg.row_step * point_cloud2_msg.height);
-            for (size_t i = 0; i < point_cloud_world.size(); ++i) {
-                float* ptr = reinterpret_cast<float*>(&point_cloud2_msg.data[i * point_cloud2_msg.point_step]);
+            for (size_t i = 0; i < point_cloud_world.size(); ++i)
+            {
+                float *ptr = reinterpret_cast<float *>(&point_cloud2_msg.data[i * point_cloud2_msg.point_step]);
                 ptr[0] = point_cloud_world[i].x;
                 ptr[1] = point_cloud_world[i].y;
                 ptr[2] = point_cloud_world[i].z;
             }
 
             geometry_msgs::msg::TransformStamped transform_stamped = tf_buffer_.lookupTransform(
-                "base_link", // target frame
+                "base_link",                      // target frame
                 point_cloud2_msg.header.frame_id, // source frame
                 point_cloud2_msg.header.stamp,
                 rclcpp::Duration::from_seconds(0.1)); // timeout
@@ -633,9 +660,8 @@ private:
 
             float offset_z = 1.0f; // example: lower the cloud by 5cm
 
-            for (auto& point : pcl_cloud.points) {
+            for (auto &point : pcl_cloud.points)
                 point.z = offset_z;
-            }
 
             sensor_msgs::msg::PointCloud2 output_msg;
             pcl::toROSMsg(pcl_cloud, output_msg);
@@ -651,7 +677,8 @@ private:
             combined_cloud += points_camera2base_filtered;
             // flatten the combined point cloud
             pcl::PointCloud<pcl::PointXYZ> flattened_cloud;
-            for (const auto& point : combined_cloud.points) {
+            for (const auto &point : combined_cloud.points)
+            {
                 pcl::PointXYZ flat_point(point.x, point.y, 0.0); // Set Z to 0 for flattening
                 flattened_cloud.points.push_back(flat_point);
             }
@@ -679,7 +706,8 @@ private:
             size_t num_ranges = static_cast<size_t>(std::ceil((scan.angle_max - scan.angle_min) / scan.angle_increment));
             scan.ranges.assign(num_ranges, std::numeric_limits<float>::infinity());
 
-            for (const auto& point : pcl_cloud.points) {
+            for (const auto &point : pcl_cloud.points)
+            {
                 float x = point.x;
                 float y = point.y;
                 float z = point.z;
@@ -699,9 +727,8 @@ private:
                     continue;
 
                 // Keep closest point for each angles
-                if (range < scan.ranges[index]) {
+                if (range < scan.ranges[index])
                     scan.ranges[index] = range;
-                }
             }
 
             // logger.info("Publishing LaserScan with %zu ranges", scan.ranges.size());
@@ -742,7 +769,7 @@ private:
         //? ==================================================
     }
 
-    void multi_region_horizontal_morphology(const cv::Mat& img, cv::Mat& combined, const std::vector<std::pair<int, int>>& kernels, int iterations = 2)
+    void multi_region_horizontal_morphology(const cv::Mat &img, cv::Mat &combined, const std::vector<std::pair<int, int>> &kernels, int iterations = 2)
     {
         int h = img.rows;
         int w = img.cols;
@@ -751,7 +778,8 @@ private:
 
         combined = cv::Mat::zeros(img.size(), img.type());
 
-        for (int i = 0; i < num_regions; ++i) {
+        for (int i = 0; i < num_regions; ++i)
+        {
             int y_start = i * region_height;
             int y_end = (i == num_regions - 1) ? h : (i + 1) * region_height;
 
@@ -767,7 +795,7 @@ private:
     }
 };
 
-int main(int argc, char** argv)
+int main(int argc, char **argv)
 {
     rclcpp::init(argc, argv);
 

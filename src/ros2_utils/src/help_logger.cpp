@@ -21,9 +21,7 @@ bool HelpLogger::is_initialized()
 bool HelpLogger::init()
 {
     if (_is_initialized)
-    {
         return true;
-    }
 
     if (spdlog::get("logger") != nullptr)
     {
@@ -44,18 +42,14 @@ std::string
 HelpLogger::to_string(const char *fmt, va_list args)
 {
     if (!_is_initialized)
-    {
         return "";
-    }
 
     va_list args_copy;
     va_copy(args_copy, args);
 
     int size = vsnprintf(nullptr, 0, fmt, args_copy);
     if (size < 0)
-    {
         return "";
-    }
 
     std::string str(size, '\0');
     vsnprintf(&str[0], size + 1, fmt, args);

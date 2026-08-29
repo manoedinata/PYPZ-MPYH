@@ -35,7 +35,7 @@ typedef struct
 
 class AprilTag4 : public rclcpp::Node
 {
-private:
+  private:
     bool tf_is_initialized = false;
     tf2_ros::Buffer tf_buffer_;
     tf2_ros::TransformListener tf_listener_;
@@ -63,7 +63,7 @@ private:
     bool param_debug = false;
     bool param_refine_edges = true;
 
-public:
+  public:
     AprilTag4() : Node("AprilTag4"), tf_buffer_(this->get_clock()), tf_listener_(tf_buffer_)
     {
         if (!logger.init())

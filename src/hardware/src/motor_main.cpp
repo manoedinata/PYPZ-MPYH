@@ -11,8 +11,9 @@
 #define DEG2RAD *0.01745329251994
 #define RAD2DEG *57.29577951308232
 
-class MotorMain : public rclcpp::Node {
-public:
+class MotorMain : public rclcpp::Node
+{
+  public:
     rclcpp::TimerBase::SharedPtr tim_routine;
     rclcpp::Publisher<std_msgs::msg::Int16>::SharedPtr pub_pwm_wheel;
     rclcpp::Publisher<std_msgs::msg::Int16>::SharedPtr pub_target_steering;
@@ -35,7 +36,7 @@ public:
     float k_p_wheel = 0.0;
     float k_i_wheel = 0.0;
     int routine_period_ms = 20; // ms
-    float wheel_radius = 0.0; // m
+    float wheel_radius = 0.0;   // m
     float encoder_ppr = 0.0;
     float steering_dutyCycle2rad = 0.0; // Derajat per duty cycle
     float offset_sudut_steering_rad = 0.0;
@@ -47,7 +48,7 @@ public:
     int16_t delta_encoder_wheel_counter = 0;
     int16_t feedback_steering = 0; // Derajat feedback = feedback_steering * 0.01
     float target_speed = 0.0;
-    float target_steering_rad = 0.0; // Derajat target steering
+    float target_steering_rad = 0.0;    // Derajat target steering
     float steering_rad2dutyCycle = 0.0; // Derajat per duty cycle
     float feedback_steering_rad = 0.0;
     float max_steering_pwm = 900;
@@ -68,7 +69,8 @@ public:
     MotorMain()
         : Node("MotorMain")
     {
-        if (!logger.init()) {
+        if (!logger.init())
+        {
             RCLCPP_ERROR(this->get_logger(), "Failed to initialize logger");
             rclcpp::shutdown();
         }
@@ -162,17 +164,17 @@ public:
         static double last_yaw = yaw;
 
         yaw_diff_ = (yaw - last_yaw); // Assuming callback is called every 20ms
-        if (yaw_diff_ > M_PI) {
+        if (yaw_diff_ > M_PI)
             yaw_diff_ -= 2 * M_PI;
-        } else if (yaw_diff_ < -M_PI) {
+        else if (yaw_diff_ < -M_PI)
             yaw_diff_ += 2 * M_PI;
-        }
         last_yaw = yaw;
     }
 
     void callback_sub_keyboard(const std_msgs::msg::Int16::SharedPtr msg)
     {
-        switch (msg->data) {
+        switch (msg->data)
+        {
         case '1':
             target_speed = 0.2;
             break;
@@ -311,7 +313,8 @@ public:
         float yaw_rate = (float)(linear_velocity / 0.22 * tanf(target_steering_rad));
         float velocity_mps = linear_velocity / 0.02;
 
-        if (abs(velocity_mps) > 0.01) {
+        if (abs(velocity_mps) > 0.01)
+        {
             float feedback_servo_rad = atan2(yaw_diff_ * 0.22, velocity_mps);
             if (feedback_servo_rad > M_PI)
                 feedback_servo_rad -= 2 * M_PI;
@@ -353,8 +356,10 @@ public:
             output_steering_ *= 0.02;
 
             logger.info("target_steering_rad: %.2f, feedback_servo_rad: %.2f, output_steering_rad: %.2f, yaw_diff: %.2f",
-                target_steering_rad RAD2DEG, feedback_servo_rad RAD2DEG, output_steering_ RAD2DEG, yaw_diff_ RAD2DEG);
-        } else {
+                        target_steering_rad RAD2DEG, feedback_servo_rad RAD2DEG, output_steering_ RAD2DEG, yaw_diff_ RAD2DEG);
+        }
+        else
+        {
             output_steering_ = target_steering_rad;
         }
 
@@ -401,7 +406,7 @@ public:
     }
 };
 
-int main(int argc, char** argv)
+int main(int argc, char **argv)
 {
     rclcpp::init(argc, argv);
 

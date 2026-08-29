@@ -70,8 +70,9 @@
 typedef pcl::PointCloud<pcl::PointXYZRGB> point_cloud;
 typedef point_cloud::Ptr cloud_pointer;
 
-class VisionCapture : public rclcpp::Node {
-private:
+class VisionCapture : public rclcpp::Node
+{
+  private:
     // -------------------------------------------------
     // Transform
     // -------------------------------------------------
@@ -158,21 +159,20 @@ private:
     rs2::config cfg_;
     bool pipeline_started_ = false;
     std::mutex pipeline_mutex_;
-    rs2::align align_to_color { RS2_STREAM_COLOR };
+    rs2::align align_to_color{RS2_STREAM_COLOR};
     rs2::pointcloud pc_;
     rs2::rates_printer printer_;
     // -------------------------------------------------
     // Shutdown handling
     // -------------------------------------------------
-    std::atomic<bool> shutdown_requested_ { false };
+    std::atomic<bool> shutdown_requested_{false};
 
-public:
+  public:
     VisionCapture()
-        : Node("vision_capture")
-        , tf_buffer_(this->get_clock())
-        , tf_listener_(tf_buffer_)
+        : Node("vision_capture"), tf_buffer_(this->get_clock()), tf_listener_(tf_buffer_)
     {
-        if (!logger.init()) {
+        if (!logger.init())
+        {
             RCLCPP_ERROR(this->get_logger(), "Failed to initialize logger");
             rclcpp::shutdown();
         }
@@ -200,18 +200,19 @@ public:
         // --------------------------------------------------
         rs2::context ctx;
         rs2::device_list devices = ctx.query_devices();
-        if (devices.size() == 0) {
+        if (devices.size() == 0)
+        {
             std::cerr << "No RealSense devices found." << std::endl;
             return;
         }
 
-        for (const auto& dev : devices) {
+        for (const auto &dev : devices)
             print_device_info(dev);
-        }
         // --------------------------------------------------
         // Configure and start RealSense pipeline
         // --------------------------------------------------
-        try {
+        try
+        {
             cfg_.enable_stream(RS2_STREAM_COLOR, 640, 480, RS2_FORMAT_BGR8, 60);
             cfg_.enable_stream(RS2_STREAM_DEPTH, 640, 480, RS2_FORMAT_Z16, 60);
 
@@ -219,7 +220,9 @@ public:
             pipeline_started_ = true;
 
             logger.info("RealSense pipeline started successfully");
-        } catch (const rs2::error& e) {
+        }
+        catch (const rs2::error &e)
+        {
             logger.error("Failed to start RealSense pipeline: %s", e.what());
             return;
         }
@@ -306,13 +309,17 @@ public:
         // --------------------------------------------------
         // Wait for TF to be initialized
         // --------------------------------------------------
-        while (!tf_is_initialized) {
+        while (!tf_is_initialized)
+        {
             rclcpp::sleep_for(std::chrono::seconds(1));
-            try {
+            try
+            {
                 tf_camera_base = tf_buffer_.lookupTransform("base_link", "camera_color_optical_frame", tf2::TimePointZero);
                 tf_base_camera = tf_buffer_.lookupTransform("camera_color_optical_frame", "base_link", tf2::TimePointZero);
                 tf_is_initialized = true;
-            } catch (const tf2::TransformException& ex) {
+            }
+            catch (const tf2::TransformException &ex)
+            {
                 logger.warn("TF not ready: %s", ex.what());
                 rclcpp::sleep_for(std::chrono::milliseconds(100));
             }
@@ -326,7 +333,7 @@ public:
         cleanup_realsense();
     }
 
-private:
+  private:
     void callback_tim_img_routine()
     {
 
@@ -352,7 +359,8 @@ private:
         {
             std::lock_guard<std::mutex> lock(image_mutex_);
 
-            if (color_image_.empty() || depth_image_.empty()) {
+            if (color_image_.empty() || depth_image_.empty())
+            {
                 logger.warn("Images not yet available, skipping overlay generation");
                 return;
             }
@@ -416,29 +424,32 @@ private:
         std::vector<std::vector<cv::Point>> contours;
         cv::findContours(otsu_binary, contours, cv::RETR_EXTERNAL, cv::CHAIN_APPROX_SIMPLE);
 
-        if (contours.empty()) {
+        if (contours.empty())
+        {
             logger.warn("No contours found in the image");
             return;
         }
 
         std::sort(contours.begin(), contours.end(),
-            [](const std::vector<cv::Point>& a, const std::vector<cv::Point>& b) {
-                return cv::contourArea(a) > cv::contourArea(b);
-            });
+                  [](const std::vector<cv::Point> &a, const std::vector<cv::Point> &b)
+                  {
+                      return cv::contourArea(a) > cv::contourArea(b);
+                  });
 
         int largest_contour_area = cv::contourArea(contours[0]);
 
         //!=============
         //! Nanti diubah
         //!=============
-        for (size_t i = 0; i < contours.size(); i++) {
+        for (size_t i = 0; i < contours.size(); i++)
+        {
             float height = cv::boundingRect(contours[i]).height;
             float width = cv::boundingRect(contours[i]).width;
 
             // put text id and area in cnt location
             cv::putText(debug_frame, std::to_string(width) + " " + std::to_string(height),
-                cv::Point(contours[i][0].x, contours[i][0].y - 10),
-                cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(0, 255, 0), 1);
+                        cv::Point(contours[i][0].x, contours[i][0].y - 10),
+                        cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(0, 255, 0), 1);
 
             // Method 1: Filter contours based on area
             // if (cv::contourArea(contours[i]) < largest_contour_area * 0.7) {
@@ -447,7 +458,8 @@ private:
             // }
 
             // Method 2: Filter contours based on height
-            if (height < 300) {
+            if (height < 300)
+            {
                 removed_contours_idx.push_back(i);
                 continue;
             }
@@ -479,17 +491,18 @@ private:
         cv::findContours(thres_yuv, yuv_contours, cv::RETR_EXTERNAL, cv::CHAIN_APPROX_SIMPLE);
 
         std::sort(yuv_contours.begin(), yuv_contours.end(),
-            [](const std::vector<cv::Point>& a, const std::vector<cv::Point>& b) {
-                return cv::contourArea(a) > cv::contourArea(b);
-            });
+                  [](const std::vector<cv::Point> &a, const std::vector<cv::Point> &b)
+                  {
+                      return cv::contourArea(a) > cv::contourArea(b);
+                  });
         // remove contours that are too small, only get 2 longest countours
-        if (yuv_contours.size() > 1) {
+        if (yuv_contours.size() > 1)
             yuv_contours.resize(1);
-        }
 
         // get area of the largest contour
         int largest_yuv_contour_area = 0;
-        if (!yuv_contours.empty()) {
+        if (!yuv_contours.empty())
+        {
             largest_yuv_contour_area = static_cast<int>(cv::contourArea(yuv_contours[0]));
             // logger.info("Largest YUV contour area: %d", largest_yuv_contour_area);
         }
@@ -498,7 +511,8 @@ private:
 
         cv::Point centroid_yuv(0, 0);
         cv::Mat cleaned_yuv = cv::Mat::zeros(thres_yuv.size(), CV_8UC1);
-        for (const auto& contour : yuv_contours) {
+        for (const auto &contour : yuv_contours)
+        {
             if (cv::contourArea(contour) < 800) // Filter out small contours
                 continue;
 
@@ -506,27 +520,29 @@ private:
             cv::Mat contour_mask = cv::Mat::zeros(thres_yuv.size(), CV_8UC1);
 
             // Draw only this contour
-            cv::drawContours(contour_mask, std::vector<std::vector<cv::Point>> { contour }, -1, cv::Scalar(255), cv::FILLED);
+            cv::drawContours(contour_mask, std::vector<std::vector<cv::Point>>{contour}, -1, cv::Scalar(255), cv::FILLED);
 
             // Count white pixels (i.e., area in pixels)
             int white_pixel_count = cv::countNonZero(contour_mask);
 
-            if (white_pixel_count < 800) {
+            if (white_pixel_count < 800)
                 continue;
-            }
             // logger.info("Contour area in pixels: %d", white_pixel_count);
 
             // Calculate the centroid of the contour
             cv::Moments m = cv::moments(contour);
-            if (m.m00 != 0) {
+            if (m.m00 != 0)
+            {
                 centroid_yuv.x = static_cast<int>(m.m10 / m.m00);
                 centroid_yuv.y = static_cast<int>(m.m01 / m.m00);
-            } else {
+            }
+            else
+            {
                 centroid_yuv.x = 0;
                 centroid_yuv.y = 0;
             }
 
-            cv::drawContours(cleaned_yuv, std::vector<std::vector<cv::Point>> { contour }, -1, cv::Scalar(255), cv::FILLED);
+            cv::drawContours(cleaned_yuv, std::vector<std::vector<cv::Point>>{contour}, -1, cv::Scalar(255), cv::FILLED);
         }
 
         std::vector<std::vector<cv::Point>> cleaned_yuv_contour;
@@ -561,14 +577,14 @@ private:
         cv::findContours(thres_hsv, hsv_contours, cv::RETR_EXTERNAL, cv::CHAIN_APPROX_SIMPLE);
         // sort contours by height
         std::sort(hsv_contours.begin(), hsv_contours.end(),
-            [](const std::vector<cv::Point>& a, const std::vector<cv::Point>& b) {
-                return cv::boundingRect(a).height > cv::boundingRect(b).height;
-            });
+                  [](const std::vector<cv::Point> &a, const std::vector<cv::Point> &b)
+                  {
+                      return cv::boundingRect(a).height > cv::boundingRect(b).height;
+                  });
 
         // remove contours that are too small, only get 2 longest countours
-        if (hsv_contours.size() > 2) {
+        if (hsv_contours.size() > 2)
             hsv_contours.resize(2);
-        }
 
         // draw contours on the cleaned binary image
         cleaned_binary = cv::Mat::zeros(thres_hsv.size(), CV_8UC1);
@@ -576,7 +592,8 @@ private:
         std::vector<cv::Point> nearest_pixels = std::vector<cv::Point>();
         std::vector<float> distances = std::vector<float>();
 
-        for (const auto& contour : hsv_contours) {
+        for (const auto &contour : hsv_contours)
+        {
             if (cv::contourArea(contour) < 1200) // Filter out small contours
                 continue;
 
@@ -584,22 +601,24 @@ private:
             cv::Mat contour_mask = cv::Mat::zeros(thres_hsv.size(), CV_8UC1);
 
             // Draw only this contour
-            cv::drawContours(contour_mask, std::vector<std::vector<cv::Point>> { contour }, -1, cv::Scalar(255), cv::FILLED);
+            cv::drawContours(contour_mask, std::vector<std::vector<cv::Point>>{contour}, -1, cv::Scalar(255), cv::FILLED);
 
             // Count white pixels (i.e., area in pixels)
             int white_pixel_count = cv::countNonZero(contour_mask);
 
-            if (white_pixel_count < 1200) {
+            if (white_pixel_count < 1200)
                 continue;
-            }
 
             // // get the nearest pixel point to the centroid of the yuv contour
-            if (!cleaned_yuv_contour.empty()) {
+            if (!cleaned_yuv_contour.empty())
+            {
                 cv::Point nearest_point(0, 0);
                 double min_distance = std::numeric_limits<double>::max();
-                for (const auto& point : contour) {
+                for (const auto &point : contour)
+                {
                     double distance = cv::norm(point - centroid_yuv);
-                    if (distance < min_distance) {
+                    if (distance < min_distance)
+                    {
                         min_distance = distance;
                         nearest_point = point;
                     }
@@ -612,21 +631,21 @@ private:
             }
             // logger.info("Contour area in pixels: %d", white_pixel_count);
 
-            cv::drawContours(cleaned_binary, std::vector<std::vector<cv::Point>> { contour }, -1, cv::Scalar(255), cv::FILLED);
+            cv::drawContours(cleaned_binary, std::vector<std::vector<cv::Point>>{contour}, -1, cv::Scalar(255), cv::FILLED);
         }
 
         // find the nearest pixel is in left side of centroid_yuv
         bool is_right_side_free = true;
-        if (!nearest_pixels.empty()) {
+        if (!nearest_pixels.empty())
+        {
             // Find the nearest pixel to the centroid_yuv
             auto min_it = std::min_element(distances.begin(), distances.end());
             int min_index = std::distance(distances.begin(), min_it);
             cv::Point nearest_pixel = nearest_pixels[min_index];
 
             // Check if the nearest pixel is on the left side of the centroid_yuv
-            if (nearest_pixel.x > centroid_yuv.x) {
+            if (nearest_pixel.x > centroid_yuv.x)
                 is_right_side_free = false;
-            }
 
             // Draw a circle at the nearest pixel
             // cv::circle(debug_frame, nearest_pixel, 5, cv::Scalar(0, 255, 0), -1);
@@ -684,30 +703,34 @@ private:
         // Transform points in 3d to matrix image using project realsense function
         // Define ground plane corners in world coordinates (base_link frame)
         // These points define a rectangular area on the ground that will be transformed to BEV
-        float ground_width = 1.0f; // 1 meter wide (-0.5 to +0.5)
+        float ground_width = 1.0f;  // 1 meter wide (-0.5 to +0.5)
         float ground_length = 2.0f; // 2 meters deep (0.5 to 2.5)
         float ground_height = 0.0f; // Ground level
 
         // 3D points defining the ground plane rectangle in base_link coordinates
-        float point_3d_left_bottom[3] = { 0.5f, -ground_width / 2, ground_height }; // Close left
-        float point_3d_right_bottom[3] = { 0.5f, ground_width / 2, ground_height }; // Close right
-        float point_3d_left_top[3] = { 0.5f + ground_length, -ground_width / 2, ground_height }; // Far left
-        float point_3d_right_top[3] = { 0.5f + ground_length, ground_width / 2, ground_height }; // Far right
+        float point_3d_left_bottom[3] = {0.5f, -ground_width / 2, ground_height};              // Close left
+        float point_3d_right_bottom[3] = {0.5f, ground_width / 2, ground_height};              // Close right
+        float point_3d_left_top[3] = {0.5f + ground_length, -ground_width / 2, ground_height}; // Far left
+        float point_3d_right_top[3] = {0.5f + ground_length, ground_width / 2, ground_height}; // Far right
 
         // Apply complete transform to each 3D point using tf2
-        auto transform_point = [&](float* point_in, float* point_out) {
+        auto transform_point = [&](float *point_in, float *point_out)
+        {
             geometry_msgs::msg::PointStamped point_base, point_camera;
             point_base.header.frame_id = "base_link";
             point_base.point.x = point_in[0];
             point_base.point.y = point_in[1];
             point_base.point.z = point_in[2];
 
-            try {
+            try
+            {
                 tf2::doTransform(point_base, point_camera, tf_base_camera);
                 point_out[0] = point_camera.point.x;
                 point_out[1] = point_camera.point.y;
                 point_out[2] = point_camera.point.z;
-            } catch (const tf2::TransformException& ex) {
+            }
+            catch (const tf2::TransformException &ex)
+            {
                 logger.warn("Failed to transform point: %s", ex.what());
                 point_out[0] = point_in[0];
                 point_out[1] = point_in[1];
@@ -749,8 +772,8 @@ private:
         cv::putText(realsense_projection, camera_size, cv::Point(10, 30), cv::FONT_HERSHEY_SIMPLEX, 0.7, cv::Scalar(200), 2);
 
         // Draw filled polygon instead of lines
-        std::vector<cv::Point> polygon_points = { left_bottom, right_bottom, right_top, left_top };
-        cv::fillPoly(realsense_projection, std::vector<std::vector<cv::Point>> { polygon_points }, cv::Scalar(255));
+        std::vector<cv::Point> polygon_points = {left_bottom, right_bottom, right_top, left_top};
+        cv::fillPoly(realsense_projection, std::vector<std::vector<cv::Point>>{polygon_points}, cv::Scalar(255));
 
         // Define source points (corners of the projected ground rectangle)
         std::vector<cv::Point2f> src_points;
@@ -765,8 +788,8 @@ private:
         std::vector<cv::Point2f> dst_points;
         dst_points.push_back(cv::Point2f(300, bev_height - 50)); // left_bottom -> bottom_right
         dst_points.push_back(cv::Point2f(100, bev_height - 50)); // right_bottom -> bottom_left
-        dst_points.push_back(cv::Point2f(300, 50)); // left_top -> top_right
-        dst_points.push_back(cv::Point2f(100, 50)); // right_top -> top_left
+        dst_points.push_back(cv::Point2f(300, 50));              // left_top -> top_right
+        dst_points.push_back(cv::Point2f(100, 50));              // right_top -> top_left
 
         // Calculate perspective transformation matrix
         cv::Mat perspective_matrix = cv::getPerspectiveTransform(src_points, dst_points);
@@ -839,9 +862,10 @@ private:
             cv::findContours(half_left, left_contours, cv::RETR_EXTERNAL, cv::CHAIN_APPROX_SIMPLE);
             // sort left_contours by height
             std::sort(left_contours.begin(), left_contours.end(),
-                [](const std::vector<cv::Point>& a, const std::vector<cv::Point>& b) {
-                    return cv::boundingRect(a).height > cv::boundingRect(b).height;
-                });
+                      [](const std::vector<cv::Point> &a, const std::vector<cv::Point> &b)
+                      {
+                          return cv::boundingRect(a).height > cv::boundingRect(b).height;
+                      });
 
             // remove left_contours that are too small, only get 2 longest countours
             // if (left_contours.size() > 1) {
@@ -853,9 +877,10 @@ private:
             cv::findContours(half_right, right_contours, cv::RETR_EXTERNAL, cv::CHAIN_APPROX_SIMPLE);
             // sort right_contours by height
             std::sort(right_contours.begin(), right_contours.end(),
-                [](const std::vector<cv::Point>& a, const std::vector<cv::Point>& b) {
-                    return cv::boundingRect(a).height > cv::boundingRect(b).height;
-                });
+                      [](const std::vector<cv::Point> &a, const std::vector<cv::Point> &b)
+                      {
+                          return cv::boundingRect(a).height > cv::boundingRect(b).height;
+                      });
 
             // remove right_contours that are too small, only get 2 longest countours
             // if (right_contours.size() > 1) {
@@ -894,14 +919,16 @@ private:
         bool right_slope_calculated = false;
 
         // Calculate left contour slope
-        if (!left_contours.empty()) {
-            const auto& contour = left_contours[0];
+        if (!left_contours.empty())
+        {
+            const auto &contour = left_contours[0];
 
             // Find points with maximum and minimum y values (in image coordinates)
             cv::Point bottom_point = contour[0]; // y terbesar (bottom in image)
-            cv::Point top_point = contour[0]; // y terkecil (top in image)
+            cv::Point top_point = contour[0];    // y terkecil (top in image)
 
-            for (const auto& point : contour) {
+            for (const auto &point : contour)
+            {
                 if (point.y > bottom_point.y)
                     bottom_point = point; // Max y (bottom)
                 if (point.y < top_point.y)
@@ -912,21 +939,24 @@ private:
             float dx = top_point.x - bottom_point.x; // Change in x
             float dy = bottom_point.y - top_point.y; // Change in y (inverted for Cartesian)
 
-            if (abs(dy) > 1) { // Avoid division by zero
+            if (abs(dy) > 1)
+            {                         // Avoid division by zero
                 left_slope = dx / dy; // Slope = rise/run in Cartesian coordinates
                 left_slope_calculated = true;
             }
         }
 
         // Calculate right contour slope
-        if (!right_contours.empty()) {
-            const auto& contour = right_contours[0];
+        if (!right_contours.empty())
+        {
+            const auto &contour = right_contours[0];
 
             // Find points with maximum and minimum y values (in image coordinates)
             cv::Point bottom_point = contour[0]; // y terbesar (bottom in image)
-            cv::Point top_point = contour[0]; // y terkecil (top in image)
+            cv::Point top_point = contour[0];    // y terkecil (top in image)
 
-            for (const auto& point : contour) {
+            for (const auto &point : contour)
+            {
                 if (point.y > bottom_point.y)
                     bottom_point = point; // Max y (bottom)
                 if (point.y < top_point.y)
@@ -937,30 +967,37 @@ private:
             float dx = top_point.x - bottom_point.x; // Change in x
             float dy = bottom_point.y - top_point.y; // Change in y (inverted for Cartesian)
 
-            if (abs(dy) > 1) { // Avoid division by zero
+            if (abs(dy) > 1)
+            {                          // Avoid division by zero
                 right_slope = dx / dy; // Slope = rise/run in Cartesian coordinates
                 right_slope_calculated = true;
             }
         }
 
         // Log the slope values
-        if (left_slope_calculated || right_slope_calculated) {
+        if (left_slope_calculated || right_slope_calculated)
             logger.info("Left slope: %.4f (calculated: %s), Right slope: %.4f (calculated: %s)",
-                left_slope, left_slope_calculated ? "true" : "false",
-                right_slope, right_slope_calculated ? "true" : "false");
-        }
+                        left_slope, left_slope_calculated ? "true" : "false",
+                        right_slope, right_slope_calculated ? "true" : "false");
 
         float average_slope = 0.0f;
-        if (left_slope_calculated && right_slope_calculated) {
+        if (left_slope_calculated && right_slope_calculated)
+        {
             average_slope = (left_slope + right_slope) / 2.0;
             logger.info("Average slope: %.4f", average_slope);
-        } else if (left_slope_calculated) {
+        }
+        else if (left_slope_calculated)
+        {
             average_slope = left_slope;
             logger.info("Average slope (only left): %.4f", average_slope);
-        } else if (right_slope_calculated) {
+        }
+        else if (right_slope_calculated)
+        {
             average_slope = right_slope;
             logger.info("Average slope (only right): %.4f", average_slope);
-        } else {
+        }
+        else
+        {
             logger.warn("No slopes calculated from contours");
         }
 
@@ -977,72 +1014,68 @@ private:
         int max_height = *std::max_element(height_profile.begin(), height_profile.end());
 
         // Draw histogram bars
-        for (int x = 0; x < cleaned_binary.cols; ++x) {
+        for (int x = 0; x < cleaned_binary.cols; ++x)
+        {
             int height = height_profile[x];
 
             // Normalize height to fit in the image (0 to image height)
             int normalized_height = 0;
-            if (max_height > 0) {
+            if (max_height > 0)
                 normalized_height = static_cast<int>((static_cast<float>(height) / max_height) * (draw_height_profile.rows - 1));
-            }
 
             // Draw vertical line from bottom to the normalized height
-            if (normalized_height > 0) {
+            if (normalized_height > 0)
                 cv::line(draw_height_profile,
-                    cv::Point(x, draw_height_profile.rows - 1),
-                    cv::Point(x, draw_height_profile.rows - 1 - normalized_height),
-                    cv::Scalar(0, 255, 0), 1);
-            }
+                         cv::Point(x, draw_height_profile.rows - 1),
+                         cv::Point(x, draw_height_profile.rows - 1 - normalized_height),
+                         cv::Scalar(0, 255, 0), 1);
         }
 
         // Add grid lines for better visualization (optional)
-        for (int y = 0; y < draw_height_profile.rows; y += 60) {
+        for (int y = 0; y < draw_height_profile.rows; y += 60)
             cv::line(draw_height_profile, cv::Point(0, y), cv::Point(draw_height_profile.cols - 1, y), cv::Scalar(50, 50, 50), 1);
-        }
-        for (int x = 0; x < draw_height_profile.cols; x += 80) {
+        for (int x = 0; x < draw_height_profile.cols; x += 80)
             cv::line(draw_height_profile, cv::Point(x, 0), cv::Point(x, draw_height_profile.rows - 1), cv::Scalar(50, 50, 50), 1);
-        }
 
         //? ==================================================
         //?                 Get Pointcloud
         //? ==================================================
         std::vector<cv::Point> point_cloud;
 
-        for (size_t rows = 0; rows < filtered_binary.rows; rows++) {
-            for (size_t cols = 0; cols < filtered_binary.cols; cols++) {
-                if (filtered_binary.at<uint8_t>(rows, cols) > 0) {
+        for (size_t rows = 0; rows < filtered_binary.rows; rows++)
+        {
+            for (size_t cols = 0; cols < filtered_binary.cols; cols++)
+                if (filtered_binary.at<uint8_t>(rows, cols) > 0)
                     point_cloud.emplace_back(cols - center_cam_x, center_cam_y - rows);
-                }
-            }
         }
 
-        if (point_cloud.empty()) {
+        if (point_cloud.empty())
+        {
             logger.warn("No pointcloud found in the image");
             return;
         }
 
         std::vector<cv::Point> cleaned_cloud;
 
-        for (size_t rows = 0; rows < cleaned_binary.rows; rows++) {
-            for (size_t cols = 0; cols < cleaned_binary.cols; cols++) {
-                if (cleaned_binary.at<uint8_t>(rows, cols) > 0) {
+        for (size_t rows = 0; rows < cleaned_binary.rows; rows++)
+        {
+            for (size_t cols = 0; cols < cleaned_binary.cols; cols++)
+                if (cleaned_binary.at<uint8_t>(rows, cols) > 0)
                     cleaned_cloud.emplace_back(cols - center_cam_x, center_cam_y - rows);
-                }
-            }
         }
 
-        if (cleaned_cloud.empty()) {
+        if (cleaned_cloud.empty())
+        {
             logger.warn("No cleaned pointcloud found in the image");
             return;
         }
 
         std::vector<cv::Point> yuv_point_cloud;
-        for (size_t rows = 0; rows < cleaned_yuv.rows; rows++) {
-            for (size_t cols = 0; cols < cleaned_yuv.cols; cols++) {
-                if (cleaned_yuv.at<uint8_t>(rows, cols) > 0) {
+        for (size_t rows = 0; rows < cleaned_yuv.rows; rows++)
+        {
+            for (size_t cols = 0; cols < cleaned_yuv.cols; cols++)
+                if (cleaned_yuv.at<uint8_t>(rows, cols) > 0)
                     yuv_point_cloud.emplace_back(cols - center_cam_x, center_cam_y - rows);
-                }
-            }
         }
 
         // if (yuv_point_cloud.empty())
@@ -1061,7 +1094,8 @@ private:
             int pixel_y = 0;
             float depth_meters = 0.0f;
 
-            for (const auto& point : point_cloud) {
+            for (const auto &point : point_cloud)
+            {
                 if (!std::isfinite(point.x) || !std::isfinite(point.y))
                     continue;
 
@@ -1078,7 +1112,7 @@ private:
                 depth_meters = depth_value * 0.001f;
 
                 // Use RealSense built-in function to convert pixel coordinates to 3D point
-                float pixel[2] = { static_cast<float>(pixel_x), static_cast<float>(pixel_y) };
+                float pixel[2] = {static_cast<float>(pixel_x), static_cast<float>(pixel_y)};
                 float point_3d[3];
                 rs2_deproject_pixel_to_point(point_3d, &intrinsics, pixel, depth_meters);
 
@@ -1097,7 +1131,8 @@ private:
             int pixel_y = 0;
             float depth_meters = 0.0f;
 
-            for (const auto& point : cleaned_cloud) {
+            for (const auto &point : cleaned_cloud)
+            {
                 if (!std::isfinite(point.x) || !std::isfinite(point.y))
                     continue;
 
@@ -1114,7 +1149,7 @@ private:
                 depth_meters = depth_value * 0.001f;
 
                 // Use RealSense built-in function to convert pixel coordinates to 3D point
-                float pixel[2] = { static_cast<float>(pixel_x), static_cast<float>(pixel_y) };
+                float pixel[2] = {static_cast<float>(pixel_x), static_cast<float>(pixel_y)};
                 float point_3d[3];
                 rs2_deproject_pixel_to_point(point_3d, &intrinsics, pixel, depth_meters);
 
@@ -1133,7 +1168,8 @@ private:
             int pixel_y = 0;
             float depth_meters = 0.0f;
 
-            for (const auto& point : yuv_point_cloud) {
+            for (const auto &point : yuv_point_cloud)
+            {
                 if (!std::isfinite(point.x) || !std::isfinite(point.y))
                     continue;
 
@@ -1150,7 +1186,7 @@ private:
                 depth_meters = depth_value * 0.001f;
 
                 // Use RealSense built-in function to convert pixel coordinates to 3D point
-                float pixel[2] = { static_cast<float>(pixel_x), static_cast<float>(pixel_y) };
+                float pixel[2] = {static_cast<float>(pixel_x), static_cast<float>(pixel_y)};
                 float point_3d[3];
                 rs2_deproject_pixel_to_point(point_3d, &intrinsics, pixel, depth_meters);
 
@@ -1166,7 +1202,8 @@ private:
         //? ==================================================
         //?                    Publish PCL
         //? ==================================================
-        if (!image_cloud_world_ptr->empty()) {
+        if (!image_cloud_world_ptr->empty())
+        {
 
             pcl::PointCloud<pcl::PointXYZ>::Ptr image_cloud_filtered(new pcl::PointCloud<pcl::PointXYZ>());
 
@@ -1178,14 +1215,13 @@ private:
             pcl::CropBox<pcl::PointXYZ> crop_box;
             crop_box.setInputCloud(transformed_cloud.makeShared());
             crop_box.setMin(Eigen::Vector4f(0.0, -0.5, -0.05, 1.0)); // Min bounds in base_link frame
-            crop_box.setMax(Eigen::Vector4f(2.5, 0.5, 0.05, 1.0)); // Max bounds in base_link frame
-            crop_box.setNegative(false); // Keep only points inside the box
+            crop_box.setMax(Eigen::Vector4f(2.5, 0.5, 0.05, 1.0));   // Max bounds in base_link frame
+            crop_box.setNegative(false);                             // Keep only points inside the box
             crop_box.filter(*image_cloud_filtered);
 
             // Offset z-axis 10 cm
-            for (auto& point : image_cloud_filtered->points) {
+            for (auto &point : image_cloud_filtered->points)
                 point.z += 0.1f; // Offset z by 10 cm
-            }
 
             // Convert pointcloud to laser scan
             sensor_msgs::msg::LaserScan laser_scan_msg;
@@ -1200,7 +1236,8 @@ private:
             size_t num_ranges = static_cast<size_t>(std::ceil((laser_scan_msg.angle_max - laser_scan_msg.angle_min) / laser_scan_msg.angle_increment));
             laser_scan_msg.ranges.assign(num_ranges, std::numeric_limits<float>::infinity());
 
-            for (const auto& point : image_cloud_filtered->points) {
+            for (const auto &point : image_cloud_filtered->points)
+            {
                 float x = point.x;
                 float y = point.y;
                 float z = point.z;
@@ -1220,9 +1257,8 @@ private:
                     continue;
 
                 // Keep closest point for each angles
-                if (range < laser_scan_msg.ranges[index]) {
+                if (range < laser_scan_msg.ranges[index])
                     laser_scan_msg.ranges[index] = range;
-                }
             }
 
             // Publish the point cloud
@@ -1234,7 +1270,9 @@ private:
 
             // Publish the laser scan
             pub_laserscan_->publish(laser_scan_msg);
-        } else {
+        }
+        else
+        {
             // Publish the empty laser scan and point cloud
             sensor_msgs::msg::PointCloud2 empty_pcl_msg;
             empty_pcl_msg.header.stamp = sync_time_;
@@ -1253,7 +1291,8 @@ private:
             pub_laserscan_->publish(empty_laser_scan_msg);
         }
 
-        if (!cleaned_cloud_world_ptr->empty()) {
+        if (!cleaned_cloud_world_ptr->empty())
+        {
 
             pcl::PointCloud<pcl::PointXYZ>::Ptr cleaned_cloud_filtered(new pcl::PointCloud<pcl::PointXYZ>());
 
@@ -1265,8 +1304,8 @@ private:
             pcl::CropBox<pcl::PointXYZ> crop_box;
             crop_box.setInputCloud(transformed_cloud.makeShared());
             crop_box.setMin(Eigen::Vector4f(0.0, -0.5, -0.05, 1.0)); // Min bounds in base_link frame
-            crop_box.setMax(Eigen::Vector4f(2.5, 0.5, 0.05, 1.0)); // Max bounds in base_link frame
-            crop_box.setNegative(false); // Keep only points inside the box
+            crop_box.setMax(Eigen::Vector4f(2.5, 0.5, 0.05, 1.0));   // Max bounds in base_link frame
+            crop_box.setNegative(false);                             // Keep only points inside the box
             crop_box.filter(*cleaned_cloud_filtered);
 
             // Publish the point cloud
@@ -1275,7 +1314,9 @@ private:
             pcl_msg.header.stamp = sync_time_;
             pcl_msg.header.frame_id = "base_link";
             pub_cleaned_pointcloud_->publish(pcl_msg);
-        } else {
+        }
+        else
+        {
             // Publish the empty laser scan and point cloud
             sensor_msgs::msg::PointCloud2 empty_pcl_msg;
             empty_pcl_msg.header.stamp = sync_time_;
@@ -1283,7 +1324,8 @@ private:
             pub_cleaned_pointcloud_->publish(empty_pcl_msg);
         }
 
-        if (!yuv_cloud_world_ptr->empty()) {
+        if (!yuv_cloud_world_ptr->empty())
+        {
             pcl::PointCloud<pcl::PointXYZ>::Ptr yuv_cloud_filtered(new pcl::PointCloud<pcl::PointXYZ>());
             // Transform point cloud to base_link frame
             pcl::PointCloud<pcl::PointXYZ> transformed_cloud;
@@ -1292,8 +1334,8 @@ private:
             pcl::CropBox<pcl::PointXYZ> crop_box;
             crop_box.setInputCloud(transformed_cloud.makeShared());
             crop_box.setMin(Eigen::Vector4f(0.4, -1.0, 0.1, 1.0)); // Min bounds in base_link frame
-            crop_box.setMax(Eigen::Vector4f(5.0, 1.0, 2.0, 1.0)); // Max bounds in base_link frame
-            crop_box.setNegative(false); // Keep only points inside the box
+            crop_box.setMax(Eigen::Vector4f(5.0, 1.0, 2.0, 1.0));  // Max bounds in base_link frame
+            crop_box.setNegative(false);                           // Keep only points inside the box
             crop_box.filter(*yuv_cloud_filtered);
 
             // Publish the point cloud
@@ -1302,7 +1344,9 @@ private:
             pcl_msg.header.stamp = sync_time_;
             pcl_msg.header.frame_id = "base_link";
             pub_yuv_pointcloud_->publish(pcl_msg);
-        } else {
+        }
+        else
+        {
             // Publish the empty laser scan and point cloud
             sensor_msgs::msg::PointCloud2 empty_pcl_msg;
             empty_pcl_msg.header.stamp = sync_time_;
@@ -1461,12 +1505,14 @@ private:
         // Buat convex hull dari gabungan kontur terbesar dan kedua terbesar
         std::vector<cv::Point> hull_points;
 
-        if (contours_hull.size() >= 2) {
+        if (contours_hull.size() >= 2)
+        {
             // Urutkan kontur berdasarkan area (dari terbesar ke terkecil)
             std::sort(contours_hull.begin(), contours_hull.end(),
-                [](const std::vector<cv::Point>& a, const std::vector<cv::Point>& b) {
-                    return cv::contourArea(a) > cv::contourArea(b); // descending order
-                });
+                      [](const std::vector<cv::Point> &a, const std::vector<cv::Point> &b)
+                      {
+                          return cv::contourArea(a) > cv::contourArea(b); // descending order
+                      });
 
             // Gabungkan dua kontur terbesar
             std::vector<cv::Point> merged_contours;
@@ -1475,16 +1521,17 @@ private:
 
             // Buat convex hull dari gabungan dua kontur
             cv::convexHull(merged_contours, hull_points);
-        } else if (contours_hull.size() == 1) {
+        }
+        else if (contours_hull.size() == 1)
+        {
             // Jika hanya ada satu kontur, gunakan itu saja
             cv::convexHull(contours_hull[0], hull_points);
         }
 
         // Buat mask dari convex hull
         cv::Mat hull_mask = cv::Mat::zeros(color_image.size(), CV_8UC1);
-        if (!hull_points.empty()) {
-            cv::fillPoly(hull_mask, std::vector<std::vector<cv::Point>> { hull_points }, cv::Scalar(255));
-        }
+        if (!hull_points.empty())
+            cv::fillPoly(hull_mask, std::vector<std::vector<cv::Point>>{hull_points}, cv::Scalar(255));
 
         // Apply bitwise AND between color image and hull mask
         cv::Mat hull_result;
@@ -1502,7 +1549,7 @@ private:
         // -- Show FPS
         double fps = 1.0 / elapsed_time;
         cv::putText(weigted_image, "FPS: " + std::to_string(fps), cv::Point(10, 30),
-            cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(255, 255, 255), 2);
+                    cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(255, 255, 255), 2);
 
         // -- Publish the overlay image
         sensor_msgs::msg::Image overlay_msg;
@@ -1550,7 +1597,8 @@ private:
         // ==================================================================
         //                      WAIT TF TO BE INTIALIZED
         // ==================================================================
-        if (!tf_is_initialized) {
+        if (!tf_is_initialized)
+        {
             logger.warn("TF not initialized, skipping point cloud processing");
             return;
         }
@@ -1574,7 +1622,8 @@ private:
         {
             std::lock_guard<std::mutex> lock(point_cloud_mutex_);
 
-            if (!point_cloud_) {
+            if (!point_cloud_)
+            {
                 logger.warn("Point cloud not yet available, skipping publishing");
                 return;
             }
@@ -1603,8 +1652,8 @@ private:
         static pcl::CropBox<pcl::PointXYZ> crop_box;
         crop_box.setInputCloud(points_camera2base.makeShared());
         crop_box.setMin(Eigen::Vector4f(0.2, -0.35, 0.15, 1.0)); // In front of robot
-        crop_box.setMax(Eigen::Vector4f(2.0, 0.35, 1.0, 1.0)); // 2m ahead, ±1m wide, max 2m tall
-        crop_box.setNegative(false); // Keep only points inside the box
+        crop_box.setMax(Eigen::Vector4f(2.0, 0.35, 1.0, 1.0));   // 2m ahead, ±1m wide, max 2m tall
+        crop_box.setNegative(false);                             // Keep only points inside the box
         crop_box.filter(points_camera2base_filtered);
 
         pcl::VoxelGrid<pcl::PointXYZ> voxel_grid;
@@ -1618,7 +1667,7 @@ private:
         static pcl::CropBox<pcl::PointXYZ> crop_box_sign;
         crop_box_sign.setInputCloud(points_camera2base.makeShared());
         crop_box_sign.setMin(Eigen::Vector4f(0.01, -0.5, 0.07, 1.0)); // min x, y, z
-        crop_box_sign.setMax(Eigen::Vector4f(1.8, 0.2, 0.2, 1.0)); // max x, y, z
+        crop_box_sign.setMax(Eigen::Vector4f(1.8, 0.2, 0.2, 1.0));    // max x, y, z
         crop_box_sign.setNegative(false);
         crop_box_sign.filter(points_camera2base_filtered_for_sign);
 
@@ -1657,38 +1706,40 @@ private:
 
     void callback_tim_routine()
     {
-        if (shutdown_requested_) {
+        if (shutdown_requested_)
             return;
-        }
 
         std::lock_guard<std::mutex> lock(pipeline_mutex_);
 
-        if (!pipeline_started_) {
+        if (!pipeline_started_)
             return;
-        }
 
-        try {
+        try
+        {
             // Wait for frames with timeout
             rs2::frameset frameset = pipe_.wait_for_frames();
-            if (!frameset) {
+            if (!frameset)
+            {
                 logger.error("Failed to get frames from the camera.");
                 return;
             }
 
             frameset = align_to_color.process(frameset);
 
-            if (frameset) {
+            if (frameset)
+            {
                 rs2::video_frame color_frame = frameset.get_color_frame();
                 rs2::depth_frame depth_frame = frameset.get_depth_frame();
 
-                if (!color_frame || !depth_frame) {
+                if (!color_frame || !depth_frame)
+                {
                     logger.error("Failed to get color or depth frame.");
                     return;
                 }
 
                 // Convert to OpenCV format
-                cv::Mat color_image(cv::Size(color_frame.get_width(), color_frame.get_height()), CV_8UC3, (void*)color_frame.get_data(), cv::Mat::AUTO_STEP);
-                cv::Mat depth_image(cv::Size(depth_frame.get_width(), depth_frame.get_height()), CV_16U, (void*)depth_frame.get_data(), cv::Mat::AUTO_STEP);
+                cv::Mat color_image(cv::Size(color_frame.get_width(), color_frame.get_height()), CV_8UC3, (void *)color_frame.get_data(), cv::Mat::AUTO_STEP);
+                cv::Mat depth_image(cv::Size(depth_frame.get_width(), depth_frame.get_height()), CV_16U, (void *)depth_frame.get_data(), cv::Mat::AUTO_STEP);
 
                 // Get camera intrinsics
                 rs2_intrinsics intrinsics = color_frame.get_profile().as<rs2::video_stream_profile>().get_intrinsics();
@@ -1720,19 +1771,22 @@ private:
                 auto Vertex = points.get_vertices();
 
                 // Iterate through all points and set XYZ coordinates
-                for (size_t i = 0; i < points.size(); ++i) {
+                for (size_t i = 0; i < points.size(); ++i)
+                {
                     cloud->points[i].x = Vertex[i].x;
                     cloud->points[i].y = Vertex[i].y;
                     cloud->points[i].z = Vertex[i].z;
                 }
 
-                if (!cloud) {
+                if (!cloud)
+                {
                     logger.error("Failed to convert RealSense points to PCL cloud.");
                     return;
                 }
 
                 // Check if the point cloud is empty
-                if (cloud->empty()) {
+                if (cloud->empty())
+                {
                     logger.error("Point cloud is empty.");
                     return;
                 }
@@ -1834,32 +1888,37 @@ private:
                 // logger.info("Timer routine elapsed time: %.4f seconds", elapsed_time);
                 // ==================================================================
             }
-        } catch (const rs2::error& e) {
-            if (!shutdown_requested_) {
+        }
+        catch (const rs2::error &e)
+        {
+            if (!shutdown_requested_)
                 RCLCPP_ERROR(this->get_logger(), "RealSense error in callback: %s", e.what());
-            }
-        } catch (const std::exception& e) {
-            if (!shutdown_requested_) {
+        }
+        catch (const std::exception &e)
+        {
+            if (!shutdown_requested_)
                 RCLCPP_ERROR(this->get_logger(), "Unexpected error in callback: %s", e.what());
-            }
         }
     }
 
     void setup_signal_handlers()
     {
-        std::signal(SIGINT, [](int) {
+        std::signal(SIGINT, [](int)
+                    {
             RCLCPP_INFO(rclcpp::get_logger("vision_capture"), "Received SIGINT, shutting down gracefully...");
             rclcpp::shutdown(); });
 
-        std::signal(SIGTERM, [](int) {
+        std::signal(SIGTERM, [](int)
+                    {
             RCLCPP_INFO(rclcpp::get_logger("vision_capture"), "Received SIGTERM, shutting down gracefully...");
             rclcpp::shutdown(); });
     }
 
-    void process_obstacle_detection(pcl::PointCloud<pcl::PointXYZ>& points)
+    void process_obstacle_detection(pcl::PointCloud<pcl::PointXYZ> &points)
     {
         // Check if the point cloud is empty
-        if (points.empty()) {
+        if (points.empty())
+        {
             logger.warn("No points available for obstacle detection");
             return;
         }
@@ -1871,53 +1930,65 @@ private:
         logger.info("Cleaning up RealSense resources...");
         std::lock_guard<std::mutex> lock(pipeline_mutex_);
 
-        if (pipeline_started_) {
-            try {
+        if (pipeline_started_)
+        {
+            try
+            {
                 logger.info("Stopping RealSense pipeline...");
                 pipe_.stop();
                 pipeline_started_ = false;
                 logger.info("RealSense pipeline stopped successfully");
-            } catch (const rs2::error& e) {
+            }
+            catch (const rs2::error &e)
+            {
                 logger.error("Error stopping RealSense pipeline: %s", e.what());
-            } catch (const std::exception& e) {
+            }
+            catch (const std::exception &e)
+            {
                 logger.error("Unexpected error stopping RealSense pipeline: %s", e.what());
             }
         }
     }
 
-    void check_error(rs2_error* e)
+    void check_error(rs2_error *e)
     {
-        if (e) {
+        if (e)
+        {
             fprintf(stderr, "RealSense error calling %s(%s):\n    %s\n",
-                rs2_get_failed_function(e),
-                rs2_get_failed_args(e),
-                rs2_get_error_message(e));
+                    rs2_get_failed_function(e),
+                    rs2_get_failed_args(e),
+                    rs2_get_error_message(e));
             rs2_free_error(e);
             exit(EXIT_FAILURE);
         }
     }
 
-    void print_device_info(const rs2::device& dev)
+    void print_device_info(const rs2::device &dev)
     {
         // Query all sensors (depth, color, motion, etc.)
-        for (rs2::sensor sensor : dev.query_sensors()) {
+        for (rs2::sensor sensor : dev.query_sensors())
+        {
             std::cout << "\nSensor: " << sensor.get_info(RS2_CAMERA_INFO_NAME) << std::endl;
 
             std::vector<rs2::stream_profile> profiles = sensor.get_stream_profiles();
 
-            for (const rs2::stream_profile& profile : profiles) {
+            for (const rs2::stream_profile &profile : profiles)
+            {
                 int fps = profile.fps();
                 if (fps < 60)
                     continue;
 
-                if (profile.is<rs2::video_stream_profile>()) {
+                if (profile.is<rs2::video_stream_profile>())
+                {
                     auto vprof = profile.as<rs2::video_stream_profile>();
                     std::cout << "  Stream: " << rs2_stream_to_string(vprof.stream_type())
                               << " " << vprof.width() << "x" << vprof.height()
                               << " @ " << vprof.fps()
                               << " Format: " << rs2_format_to_string(vprof.format())
                               << std::endl;
-                } else {
+                }
+                else
+                {
                     std::cout << "  Stream: " << rs2_stream_to_string(profile.stream_type())
                               << " @ " << profile.fps()
                               << " Format: " << rs2_format_to_string(profile.format())
@@ -1934,25 +2005,27 @@ private:
     }
 };
 
-int main(int argc, char** argv)
+int main(int argc, char **argv)
 {
     rclcpp::init(argc, argv);
     std::shared_ptr<VisionCapture> node_VisionCapture;
 
-    try {
+    try
+    {
         node_VisionCapture = std::make_shared<VisionCapture>();
 
         rclcpp::executors::MultiThreadedExecutor executor;
         executor.add_node(node_VisionCapture);
         executor.spin();
-    } catch (const std::exception& e) {
+    }
+    catch (const std::exception &e)
+    {
         RCLCPP_ERROR(rclcpp::get_logger("vision_capture"), "Failed to create VisionCapture node: %s", e.what());
         rclcpp::shutdown();
     }
 
-    if (node_VisionCapture) {
+    if (node_VisionCapture)
         node_VisionCapture.reset();
-    }
 
     rclcpp::shutdown();
     return 0;

@@ -2,11 +2,10 @@
 #include "master/master.hpp"
 
 Master::Master()
-    : Node("master")
-    , tf_buffer_(this->get_clock())
-    , tf_listener_(tf_buffer_)
+    : Node("master"), tf_buffer_(this->get_clock()), tf_listener_(tf_buffer_)
 {
-    if (!logger.init()) {
+    if (!logger.init())
+    {
         RCLCPP_ERROR(this->get_logger(), "Failed to initialize logger");
         rclcpp::shutdown();
     }
@@ -230,18 +229,28 @@ void Master::callback_routine()
     // manual_motion(manual_vx, manual_vy, manual_wz);
 
     // logger.info("========================== GLOBAL FSM: %d ==========================", global_fsm.value);
-    switch (global_fsm.value) {
+    switch (global_fsm.value)
+    {
     case FSM_GLOBAL_INIT:
 
-        if (global_fsm.prev_value == FSM_GLOBAL_RECORD_ROUTE) {
+        if (global_fsm.prev_value == FSM_GLOBAL_RECORD_ROUTE)
+        {
             process_save_waypoints();
-        } else if (global_fsm.prev_value == FSM_GLOBAL_RECORD_ROUTE_KANAN) {
+        }
+        else if (global_fsm.prev_value == FSM_GLOBAL_RECORD_ROUTE_KANAN)
+        {
             process_save_waypoints_race(waypoint_file_path_kanan, waypoints_race_kanan);
-        } else if (global_fsm.prev_value == FSM_GLOBAL_RECORD_ROUTE_KIRI) {
+        }
+        else if (global_fsm.prev_value == FSM_GLOBAL_RECORD_ROUTE_KIRI)
+        {
             process_save_waypoints_race(waypoint_file_path_kiri, waypoints_race_kiri);
-        } else if (global_fsm.prev_value == FSM_GLOBAL_RECORD_ROUTE_TENGAH) {
+        }
+        else if (global_fsm.prev_value == FSM_GLOBAL_RECORD_ROUTE_TENGAH)
+        {
             process_save_waypoints_race(waypoint_file_path_tengah, waypoints_race_tengah);
-        } else {
+        }
+        else
+        {
             process_load_waypoints();
             process_load_waypoints_race(waypoint_file_path_kanan, waypoints_race_kanan);
             process_load_waypoints_race(waypoint_file_path_kiri, waypoints_race_kiri);
@@ -294,7 +303,8 @@ void Master::callback_routine()
         break;
     case 99:
         break;
-    case FSM_GLOBAL_CUSTOM_DEBUG_1: {
+    case FSM_GLOBAL_CUSTOM_DEBUG_1:
+    {
         // logger.info("gryo: %.2f", fb_final_pose_xyo[2] * 180 / M_PI);
         // if (move_left(0.8, 0.75, 90)) {
         //     manual_motion(-0.01, 0, 0);
@@ -302,7 +312,8 @@ void Master::callback_routine()
         manual_motion(target_velocity_joy_x, 0, target_steering_vision);
         break;
     }
-    case FSM_GLOBAL_CUSTOM_DEBUG_2: {
+    case FSM_GLOBAL_CUSTOM_DEBUG_2:
+    {
 
         static float pos_awal = enc_meter;
 
@@ -310,17 +321,17 @@ void Master::callback_routine()
         fsm.reentry(0, 0.5);
 
         logger.info("FSM : %d || %.2f", fsm.value, enc_meter - pos_awal);
-        switch (fsm.value) {
+        switch (fsm.value)
+        {
         case 0:
             pos_awal = enc_meter;
             fsm.value = 1;
             break;
         case 1:
-            if (enc_meter - pos_awal > 1.0) {
+            if (enc_meter - pos_awal > 1.0)
                 fsm.value = 2;
-            } else {
+            else
                 manual_motion(target_velocity_joy_x, 0, target_velocity_joy_wz);
-            }
             break;
         case 2:
             manual_motion(0, 0, target_velocity_joy_wz);
@@ -357,7 +368,8 @@ void Master::callback_routine()
 
 void Master::callback_sub_key_pressed(const std_msgs::msg::Int16::SharedPtr msg)
 {
-    switch (msg->data) {
+    switch (msg->data)
+    {
     case 'j':
         target_velocity_joy_x = 0.5;
         break;
@@ -471,26 +483,28 @@ void Master::callback_sub_filtered_camera(const sensor_msgs::msg::PointCloud2::S
     ada_obs = 0;
     auto now = this->now();
 
-    if (!points_obstacle2base.points.empty() && points_obstacle2base.points.size() > 100) {
+    if (!points_obstacle2base.points.empty() && points_obstacle2base.points.size() > 100)
+    {
         obs_buffered_timed.cloud = points_obstacle2base;
         obs_buffered_timed.stamp = now;
 
-        if (obs_pcl_buffer.size() >= max_obs_buffer_size) {
+        if (obs_pcl_buffer.size() >= max_obs_buffer_size)
             obs_pcl_buffer.erase(obs_pcl_buffer.begin()); // Remove the oldest entry
-        }
+
         obs_pcl_buffer.push_back(obs_buffered_timed);
     }
 
     obs_pcl_buffer.erase(
         std::remove_if(obs_pcl_buffer.begin(), obs_pcl_buffer.end(),
-            [now](const pcl_timed_t& obs) { return (now - obs.stamp).seconds() > 2.0; }),
+                       [now](const pcl_timed_t &obs)
+                       { return (now - obs.stamp).seconds() > 2.0; }),
         obs_pcl_buffer.end());
 
     // // masukkan semua point cloud yang ada di buffer ke dalam suatu point cloud yang besar
-    if (!obs_pcl_buffer.empty()) {
-        for (const auto& obs : obs_pcl_buffer) {
+    if (!obs_pcl_buffer.empty())
+    {
+        for (const auto &obs : obs_pcl_buffer)
             buffered_obs += obs.cloud; // Concatenate point clouds
-        }
 
         // Set the header for the combined point cloud
         // buffered_obs.header.stamp = obs_pcl_buffer.back().stamp.nanoseconds() / 1e6; // Convert to milliseconds
@@ -505,7 +519,8 @@ void Master::callback_sub_filtered_camera(const sensor_msgs::msg::PointCloud2::S
     voxel_filter.filter(filtered_obs);
     buffered_obs = filtered_obs;
 
-    if (!points_obstacle2base.points.empty()) {
+    if (!points_obstacle2base.points.empty())
+    {
         // pcl::compute3DCentroid(buffered_obs, obstacle_centroid);
         pcl::compute3DCentroid(points_obstacle2base, obstacle_centroid);
 
@@ -527,7 +542,9 @@ void Master::callback_sub_filtered_camera(const sensor_msgs::msg::PointCloud2::S
         // obstacle_centroid.x() = obstacle_centroid.x() + fb_final_pose_xyo[0] * sin(fb_final_pose_xyo[2]) - fb_final_pose_xyo[1] * cos(fb_final_pose_xyo[2]);
         // obstacle_centroid.y() = obstacle_centroid.y() + fb_final_pose_xyo[0] * cos(fb_final_pose_xyo[2]) + fb_final_pose_xyo[1] * sin(fb_final_pose_xyo[2]);
         obstacle_centroid.z() = 0.0; // Assuming z-coordinate is not relevant for obstacles
-    } else {
+    }
+    else
+    {
         obstacle_centroid.x() = 9999.0;
         obstacle_centroid.y() = 0.0;
         obstacle_centroid.z() = 9999.0;
@@ -577,26 +594,28 @@ void Master::callback_sub_road_pointcloud(const sensor_msgs::msg::PointCloud2::S
 
     auto now = this->now();
 
-    if (!points_road2base.points.empty()) {
+    if (!points_road2base.points.empty())
+    {
         // Buffer the road points
         road_buffered_timed.cloud = points_road2base;
         road_buffered_timed.stamp = now;
 
-        if (road_pcl_buffer.size() >= max_road_buffer_size) {
+        if (road_pcl_buffer.size() >= max_road_buffer_size)
             road_pcl_buffer.erase(road_pcl_buffer.begin()); // Remove the oldest entry
-        }
+
         road_pcl_buffer.push_back(road_buffered_timed);
     }
 
     road_pcl_buffer.erase(
         std::remove_if(road_pcl_buffer.begin(), road_pcl_buffer.end(),
-            [now](const pcl_timed_t& road) { return (now - road.stamp).seconds() > 3.0; }),
+                       [now](const pcl_timed_t &road)
+                       { return (now - road.stamp).seconds() > 3.0; }),
         road_pcl_buffer.end());
 
-    if (!road_pcl_buffer.empty()) {
-        for (const auto& road : road_pcl_buffer) {
+    if (!road_pcl_buffer.empty())
+    {
+        for (const auto &road : road_pcl_buffer)
             buffered_road += road.cloud; // Concatenate point clouds
-        }
 
         // Set the header for the combined point cloud
         // buffered_road.header.stamp = road_pcl_buffer.back().stamp.nanoseconds() / 1e6; // Convert to milliseconds
@@ -614,17 +633,16 @@ void Master::callback_sub_road_pointcloud(const sensor_msgs::msg::PointCloud2::S
     buffered_road = filtered_road;
 
     // Pisahkan edge ke kiri dan kanan
-    if (!buffered_road.points.empty()) {
+    if (!buffered_road.points.empty())
+    {
         edge_left.clear();
         edge_right.clear();
 
-        for (const auto& pt : buffered_road.points) {
-            if (pt.y > 0.0) {
+        for (const auto &pt : buffered_road.points)
+            if (pt.y > 0.0)
                 edge_left.push_back(pt);
-            } else {
+            else
                 edge_right.push_back(pt);
-            }
-        }
     }
 
     float left_distance_min = std::numeric_limits<float>::max();
@@ -635,36 +653,38 @@ void Master::callback_sub_road_pointcloud(const sensor_msgs::msg::PointCloud2::S
 
     bool dekat_obs = (pythagoras(obstacle_centroid2base.x(), obstacle_centroid2base.y(), 0, 0) < 2.0);
 
-    if (!edge_left.empty()) {
-        for (const auto& pt : edge_left.points) {
+    if (!edge_left.empty())
+    {
+        for (const auto &pt : edge_left.points)
+        {
 
             float distance = std::hypot(pt.x, pt.y);
-            if (distance < left_distance_min) {
+            if (distance < left_distance_min)
                 left_distance_min = distance;
-            }
 
-            if (dekat_obs) {
+            if (dekat_obs)
+            {
                 float distance_obs = pythagoras(pt.x, pt.y, obstacle_centroid2base.x(), obstacle_centroid2base.y());
-                if (distance_obs < left_distance_min_obs) {
+                if (distance_obs < left_distance_min_obs)
                     left_distance_min_obs = distance_obs;
-                }
             }
         }
     }
 
-    if (!edge_right.empty()) {
-        for (const auto& pt : edge_right.points) {
+    if (!edge_right.empty())
+    {
+        for (const auto &pt : edge_right.points)
+        {
 
             float distance = std::hypot(pt.x, pt.y);
-            if (distance < right_distance_min) {
+            if (distance < right_distance_min)
                 right_distance_min = distance;
-            }
 
-            if (dekat_obs) {
+            if (dekat_obs)
+            {
                 float distance_obs = pythagoras(pt.x, pt.y, obstacle_centroid2base.x(), obstacle_centroid2base.y());
-                if (distance_obs < right_distance_min_obs) {
+                if (distance_obs < right_distance_min_obs)
                     right_distance_min_obs = distance_obs;
-                }
             }
         }
     }
@@ -673,37 +693,53 @@ void Master::callback_sub_road_pointcloud(const sensor_msgs::msg::PointCloud2::S
     // logger.info("Edge left x min: %.2f, Edge right x max: %.2f", left_distance_min, right_distance_min);
     // }
 
-    if (left_distance_min < right_distance_min) {
+    if (left_distance_min < right_distance_min)
+    {
         // logger.info("robot di kiri");
         posisi_robot_di_kanan = 0; // Robot di kiri
-    } else {
+    }
+    else
+    {
         // logger.info("robot di kanan");
         posisi_robot_di_kanan = 1; // Robot di kanan
     }
     // logger.info("jarak kiri: %.2f, jarak kanan: %.2f || %.2f", left_distance_min_obs, right_distance_min_obs, right_distance_min_obs + left_distance_min_obs);
 
-    if (dekat_obs) {
-        if (left_distance_min_obs > 99999 || right_distance_min_obs > 99999) {
-            if ((left_distance_min_obs > 0.5 && left_distance_min_obs < 99999) || right_distance_min_obs < 0.35) {
+    if (dekat_obs)
+    {
+        if (left_distance_min_obs > 99999 || right_distance_min_obs > 99999)
+        {
+            if ((left_distance_min_obs > 0.5 && left_distance_min_obs < 99999) || right_distance_min_obs < 0.35)
+            {
                 // logger.info("obs di kanan 1");
                 posisi_obs_di_kanan = 1; // Obstacle di kanan
-            } else if ((right_distance_min_obs > 0.5 && right_distance_min_obs < 99999) || left_distance_min_obs < 0.35) {
+            }
+            else if ((right_distance_min_obs > 0.5 && right_distance_min_obs < 99999) || left_distance_min_obs < 0.35)
+            {
                 // logger.info("obs di kiri 2");
                 posisi_obs_di_kanan = 0; // Obstacle di kiri
-            } else {
+            }
+            else
+            {
                 // logger.info("wtff");
                 posisi_obs_di_kanan = -1; // Tidak ada obstacle yang jelas
             }
-        } else if (left_distance_min_obs < right_distance_min_obs) {
+        }
+        else if (left_distance_min_obs < right_distance_min_obs)
+        {
             // logger.info("kiriiiii dekat obs %.2f, kanan dekat obs %.2f",
             //             left_distance_min_obs, right_distance_min_obs);
             posisi_obs_di_kanan = 0; // Obstacle di kiri
-        } else {
+        }
+        else
+        {
             // logger.info("kanan dekat obs %.2f, kiri dekat obs %.2f",
             //             right_distance_min_obs, left_distance_min_obs);
             posisi_obs_di_kanan = 1; // Obstacle di kanan
         }
-    } else {
+    }
+    else
+    {
         // logger.info("tidak ada obstacle dekat");
     }
 
@@ -817,23 +853,21 @@ void Master::callback_sub_button(const std_msgs::msg::Int8::SharedPtr msg)
     static int8_t counter_toogle_1 = 0;
     static int8_t prev_toogle_1 = 0;
 
-    if (prev_toogle_1 == 0 && toogle_button_1 == 1) {
+    if (prev_toogle_1 == 0 && toogle_button_1 == 1)
         counter_toogle_1++;
-    }
 
-    if (prev_button_1 == 0 && button_1 == 1) {
+    if (prev_button_1 == 0 && button_1 == 1)
         global_fsm.value = 1;
-    }
-    if (prev_button_1 == 1 && button_1 == 1) {
+    if (prev_button_1 == 1 && button_1 == 1)
         global_fsm.value = FSM_GLOBAL_RACE_BUTTON;
-    }
 
     prev_button_1 = button_1;
 }
 
 void Master::callback_sub_vision_urban_config(const std_msgs::msg::Float32MultiArray::SharedPtr msg)
 {
-    for (size_t i = 0; i < msg->data.size(); ++i) {
+    for (size_t i = 0; i < msg->data.size(); ++i)
+    {
         derajat_steering_kanan_ = msg->data[14];
         derajat_steering_kiri_ = msg->data[15];
         encoder_belok_kanan_ = msg->data[16];
@@ -848,20 +882,20 @@ void Master::callback_sub_vision_urban_config(const std_msgs::msg::Float32MultiA
         min_jarak_putih_kanan_ = msg->data[27];
         min_jarak_putih_kiri_ = msg->data[28];
         min_jarak_putih_lurus_ = msg->data[29];
-        encoder_maju_dead_end_ = msg->data[30]; // Default value for dead end maneuver
+        encoder_maju_dead_end_ = msg->data[30];  // Default value for dead end maneuver
         velocity_jalan_otomatis = msg->data[31]; // Default velocity for automatic driving
         offset_jarak_sign_pole_ = msg->data[34]; // Offset distance to sign pole
-        last_gyro_angle_ = msg->data[35]; // Last gyro angle for sign detection
-        min_vel_belokan_ = msg->data[37]; // Minimum velocity for cornering
-        jarak_ke_sign_pole_ = msg->data[38]; // Distance to sign pole
+        last_gyro_angle_ = msg->data[35];        // Last gyro angle for sign detection
+        min_vel_belokan_ = msg->data[37];        // Minimum velocity for cornering
+        jarak_ke_sign_pole_ = msg->data[38];     // Distance to sign pole
     }
 
     logger.info("INIT %.2f %.2f %.2f %.2f %.2f %.2f %.2f %.2f %.2f %.2f",
-        derajat_steering_kanan_, derajat_steering_kiri_,
-        encoder_belok_kanan_, encoder_belok_kiri_,
-        encoder_maju_kanan_, encoder_maju_kiri_,
-        encoder_maju_lurus_, jarak_ke_putih_,
-        derajat_gyro_kanan_, derajat_gyro_kiri_);
+                derajat_steering_kanan_, derajat_steering_kiri_,
+                encoder_belok_kanan_, encoder_belok_kiri_,
+                encoder_maju_kanan_, encoder_maju_kiri_,
+                encoder_maju_lurus_, jarak_ke_putih_,
+                derajat_gyro_kanan_, derajat_gyro_kiri_);
 }
 
 void Master::callback_sub_sign_pointcloud(const sensor_msgs::msg::PointCloud2::SharedPtr msg)
@@ -869,9 +903,12 @@ void Master::callback_sub_sign_pointcloud(const sensor_msgs::msg::PointCloud2::S
     pcl::fromROSMsg(*msg, points_sign2base);
 
     // check if the point size is greater than 100
-    if (points_sign2base.size() > 10) {
+    if (points_sign2base.size() > 10)
+    {
         pcl::compute3DCentroid(points_sign2base, sign_centroid);
-    } else {
+    }
+    else
+    {
         sign_centroid.x() = 9999.0;
         sign_centroid.y() = 9999.0;
         sign_centroid.z() = 9999.0;
@@ -881,12 +918,15 @@ void Master::callback_sub_sign_pointcloud(const sensor_msgs::msg::PointCloud2::S
 void Master::callback_srv_set_record_route_mode(const std_srvs::srv::SetBool::Request::SharedPtr request, std_srvs::srv::SetBool::Response::SharedPtr response)
 {
     response->success = false;
-    if (request->data) {
+    if (request->data)
+    {
         waypoints.clear();
         global_fsm.value = FSM_GLOBAL_RECORD_ROUTE;
         response->message = "Record route mode enabled";
         response->success = true;
-    } else {
+    }
+    else
+    {
         global_fsm.value = FSM_GLOBAL_INIT;
         response->message = "Record route mode disabled";
         response->success = true;
@@ -896,12 +936,15 @@ void Master::callback_srv_set_record_route_mode(const std_srvs::srv::SetBool::Re
 void Master::callback_srv_set_record_route_mode_kanan(const std_srvs::srv::SetBool::Request::SharedPtr request, std_srvs::srv::SetBool::Response::SharedPtr response)
 {
     response->success = false;
-    if (request->data) {
+    if (request->data)
+    {
         waypoints_race_kanan.clear();
         global_fsm.value = FSM_GLOBAL_RECORD_ROUTE_KANAN;
         response->message = "Record route kanan mode enabled";
         response->success = true;
-    } else {
+    }
+    else
+    {
         global_fsm.value = FSM_GLOBAL_INIT;
         response->message = "Record route mode disabled";
         response->success = true;
@@ -911,12 +954,15 @@ void Master::callback_srv_set_record_route_mode_kanan(const std_srvs::srv::SetBo
 void Master::callback_srv_set_record_route_mode_kiri(const std_srvs::srv::SetBool::Request::SharedPtr request, std_srvs::srv::SetBool::Response::SharedPtr response)
 {
     response->success = false;
-    if (request->data) {
+    if (request->data)
+    {
         waypoints_race_kiri.clear();
         global_fsm.value = FSM_GLOBAL_RECORD_ROUTE_KIRI;
         response->message = "Record route kiri mode enabled";
         response->success = true;
-    } else {
+    }
+    else
+    {
         global_fsm.value = FSM_GLOBAL_INIT;
         response->message = "Record route mode disabled";
         response->success = true;
@@ -926,12 +972,15 @@ void Master::callback_srv_set_record_route_mode_kiri(const std_srvs::srv::SetBoo
 void Master::callback_srv_set_record_route_mode_tengah(const std_srvs::srv::SetBool::Request::SharedPtr request, std_srvs::srv::SetBool::Response::SharedPtr response)
 {
     response->success = false;
-    if (request->data) {
+    if (request->data)
+    {
         waypoints_race_tengah.clear();
         global_fsm.value = FSM_GLOBAL_RECORD_ROUTE_TENGAH;
         response->message = "Record route tengah mode enabled";
         response->success = true;
-    } else {
+    }
+    else
+    {
         global_fsm.value = FSM_GLOBAL_INIT;
         response->message = "Record route mode disabled";
         response->success = true;
@@ -941,11 +990,14 @@ void Master::callback_srv_set_record_route_mode_tengah(const std_srvs::srv::SetB
 void Master::callback_srv_set_add_record_route_mode(const std_srvs::srv::SetBool::Request::SharedPtr request, std_srvs::srv::SetBool::Response::SharedPtr response)
 {
     response->success = false;
-    if (request->data) {
+    if (request->data)
+    {
         global_fsm.value = FSM_GLOBAL_RECORD_ROUTE;
         response->message = "Record route mode enabled";
         response->success = true;
-    } else {
+    }
+    else
+    {
         global_fsm.value = FSM_GLOBAL_INIT;
         response->message = "Record route mode disabled";
         response->success = true;
@@ -955,11 +1007,14 @@ void Master::callback_srv_set_add_record_route_mode(const std_srvs::srv::SetBool
 void Master::callback_srv_rm_terminal(const std_srvs::srv::SetBool::Request::SharedPtr request, std_srvs::srv::SetBool::Response::SharedPtr response)
 {
     response->success = false;
-    if (request->data) {
+    if (request->data)
+    {
         terminals.terminals.clear();
         response->message = "Success pop terminal";
         response->success = true;
-    } else {
+    }
+    else
+    {
         terminals.terminals.pop_back();
         response->message = "Success clear terminals";
         response->success = true;
@@ -968,11 +1023,14 @@ void Master::callback_srv_rm_terminal(const std_srvs::srv::SetBool::Request::Sha
 void Master::callback_srv_set_terminal(const std_srvs::srv::SetBool::Request::SharedPtr request, std_srvs::srv::SetBool::Response::SharedPtr response)
 {
     response->success = false;
-    if (request->data) {
+    if (request->data)
+    {
         process_add_terminal();
         response->message = "Success add terminal";
         response->success = true;
-    } else {
+    }
+    else
+    {
         process_save_terminals();
         response->message = "Success save terminals";
         response->success = true;
@@ -981,11 +1039,14 @@ void Master::callback_srv_set_terminal(const std_srvs::srv::SetBool::Request::Sh
 void Master::callback_srv_set_terminal_sign(const std_srvs::srv::SetBool::Request::SharedPtr request, std_srvs::srv::SetBool::Response::SharedPtr response)
 {
     response->success = false;
-    if (request->data) {
+    if (request->data)
+    {
         process_add_terminal_sign();
         response->message = "Success add terminal";
         response->success = true;
-    } else {
+    }
+    else
+    {
         process_save_terminals();
         response->message = "Success save terminals";
         response->success = true;
@@ -994,20 +1055,23 @@ void Master::callback_srv_set_terminal_sign(const std_srvs::srv::SetBool::Reques
 
 void Master::callback_sub_joy(const sensor_msgs::msg::Joy::SharedPtr msg)
 {
-    if (msg->axes.size() >= 2) {
+    if (msg->axes.size() >= 2)
+    {
         target_velocity_joy_x = msg->axes[1] * profile_max_velocity * 0.5;
 
         target_velocity_joy_wz = msg->axes[2] * profile_max_steering_rad;
 
-        if ((target_velocity_joy_wz >= profile_max_steering_rad - 0.001) && (target_velocity_joy_x >= profile_max_velocity * 0.45)) {
+        if ((target_velocity_joy_wz >= profile_max_steering_rad - 0.001) && (target_velocity_joy_x >= profile_max_velocity * 0.45))
             target_velocity_joy_x = msg->axes[1] * profile_max_velocity * 0.9;
-        }
     }
 
-    if (msg->buttons[6] == 1 && global_fsm.value != FSM_GLOBAL_RECORD_DATASET_ROAD) {
+    if (msg->buttons[6] == 1 && global_fsm.value != FSM_GLOBAL_RECORD_DATASET_ROAD)
+    {
         global_fsm.value = FSM_GLOBAL_RECORD_DATASET_ROAD;
         logger.info("Switched to FSM_GLOBAL_RECORD_DATASET_ROAD");
-    } else if (msg->buttons[4] == 1 && global_fsm.value == FSM_GLOBAL_RECORD_DATASET_ROAD) {
+    }
+    else if (msg->buttons[4] == 1 && global_fsm.value == FSM_GLOBAL_RECORD_DATASET_ROAD)
+    {
         global_fsm.value = FSM_GLOBAL_INIT;
         logger.info("Switched to FSM_GLOBAL_INIT");
     }
@@ -1023,12 +1087,13 @@ void Master::callback_sub_detected_apriltag(const visualization_msgs::msg::Marke
 {
     // logger.info("Detected AprilTag markers: %zu", msg->markers.size());
 
-    if (msg->markers.empty()) {
+    if (msg->markers.empty())
+    {
         // logger.warn("No AprilTag markers detected");
         return;
     }
 
-    const auto& marker = msg->markers[0];
+    const auto &marker = msg->markers[0];
     detected_apriltag.id = marker.id;
     detected_apriltag.x = marker.pose.position.x;
     detected_apriltag.y = marker.pose.position.y;
@@ -1064,7 +1129,7 @@ void Master::callback_sub_pointcloud_laser_scan(const sensor_msgs::msg::LaserSca
 {
 }
 
-int main(int argc, char** argv)
+int main(int argc, char **argv)
 {
     rclcpp::init(argc, argv);
 

@@ -5,7 +5,7 @@
 
 class MachineState
 {
-public:
+  public:
     int16_t value;
     int16_t prev_value;
     uint8_t intr_cntr;
@@ -53,9 +53,7 @@ public:
         std::chrono::high_resolution_clock::time_point t_now = std::chrono::high_resolution_clock::now();
         std::chrono::duration<double> elapsed_seconds = t_now - uptime_reentry;
         if (elapsed_seconds.count() > period)
-        {
             value = target_state;
-        }
         uptime_reentry = std::chrono::high_resolution_clock::now();
     }
 };

@@ -38,8 +38,9 @@ T constrain(T value, T min_val, T max_val)
     return std::max(min_val, std::min(value, max_val));
 }
 
-class MotorMain2 : public rclcpp::Node {
-private:
+class MotorMain2 : public rclcpp::Node
+{
+  private:
     // -------------------------------------------------
     // Transform
     // -------------------------------------------------
@@ -104,7 +105,7 @@ private:
 
     float linear_velocity_mps_ = 0.0;
 
-    float encoder_position_m_ = 0.0; // m
+    float encoder_position_m_ = 0.0;   // m
     float encoder_velocity_mps_ = 0.0; // m/s
 
     int8_t button_1 = 0;
@@ -112,7 +113,7 @@ private:
     int8_t toogle_button_1 = 0;
     int8_t toogle_button_2 = 0;
 
-    float tuning = 0; // parameter
+    float tuning = 0;           // parameter
     float K_model = 0.00066619; // m/s per PWM
 
     // -------------------------------------------------
@@ -124,7 +125,7 @@ private:
     float k_d_steering_ = 0.0;
 
     float wheel_radius_ = 0.0; // m
-    float encoder_ppr_ = 0.0; // Pulses per revolution
+    float encoder_ppr_ = 0.0;  // Pulses per revolution
     float cnt_to_meter_ = 0.0; // Conversion factor from encoder counts to meters
 
     float max_steering_deg_ = 0.0; // Maximum steering angle in degrees
@@ -140,11 +141,12 @@ private:
 
     float wheel_base_ = 0.0; // Distance between the wheels (m)
 
-public:
+  public:
     MotorMain2()
         : Node("motor_main2")
     {
-        if (!logger.init()) {
+        if (!logger.init())
+        {
             RCLCPP_ERROR(this->get_logger(), "Failed to initialize logger");
             rclcpp::shutdown();
         }
@@ -285,18 +287,17 @@ public:
         // --------------------------------------------------
         // Create timer
         // --------------------------------------------------
-        timer_routine_
-            = this->create_wall_timer(
-                std::chrono::milliseconds(5),
-                std::bind(&MotorMain2::callback_tim_routine, this),
-                tim_routine_group_);
+        timer_routine_ = this->create_wall_timer(
+            std::chrono::milliseconds(5),
+            std::bind(&MotorMain2::callback_tim_routine, this),
+            tim_routine_group_);
 
         logger.info("MotorMain2 node initialized with multithreading");
     }
 
-    ~MotorMain2() { }
+    ~MotorMain2() {}
 
-private:
+  private:
     void callback_tim_routine()
     {
 
@@ -308,9 +309,8 @@ private:
         double elapsed_time = start_time - last_time;
         last_time = start_time;
 
-        if (elapsed_time == 0) {
+        if (elapsed_time == 0)
             return;
-        }
         // logger.info("Timer routine elapsed time: %.4f seconds", elapsed_time);
         // ==================================================================
         //?==================================================================
@@ -328,9 +328,8 @@ private:
         // logger.info("KP: %.4f, KI: %.4f, KD: %.4f, DT: %.4f", k_p_wheel_, k_i_wheel_, k_d_wheel_, elapsed_time);
         velocity.init(k_p_wheel_, k_i_wheel_, k_d_wheel_, elapsed_time, min_wheel_velocity_pwm_, max_wheel_velocity_pwm_, min_wheel_integral_pwm_, max_wheel_integral_pwm_);
 
-        if (!toogle_button_2) {
+        if (!toogle_button_2)
             velocity.reset();
-        }
 
         float error_speed = target_speed_value_ - encoder_velocity_mps_;
 
@@ -340,13 +339,12 @@ private:
         target_pwm_wheel_ = std::max(std::min(pwm_unsat, max_wheel_velocity_pwm_), min_wheel_velocity_pwm_);
         // logger.info("Target Speed: %.2f, Linear Velocity: %f, Error Speed: %.2f, Target PWM Wheel: %d | ff: %.2f fb: %.2f", target_speed_value_, encoder_velocity_mps_, error_speed, target_pwm_wheel_, pwm_ff, pwm_fb);
 
-        if (static_cast<int>(tuning) == 1) {
+        if (static_cast<int>(tuning) == 1)
             tuning_pwm2vel();
-        } else if (static_cast<int>(tuning) == 2) {
+        else if (static_cast<int>(tuning) == 2)
             tuning_pid_ziegler(K_model);
-        } else if (static_cast<int>(tuning) == 3) {
+        else if (static_cast<int>(tuning) == 3)
             tuning_pid_prbs(K_model);
-        }
 
         // target_pwm_wheel_ = target_speed_value_;
         // target_pwm_wheel_ = 417.5035596; 0.1 m/s
@@ -378,7 +376,8 @@ private:
         //?            DELAY TRANSMISSION -> WAIT FOR CANBUS
         //? ============================================================
         static int8_t counter = 200;
-        if (counter > 0) {
+        if (counter > 0)
+        {
             counter--;
             return;
         }
@@ -390,9 +389,8 @@ private:
         double dt = start_time - last_time;
         last_time = start_time;
 
-        if (dt == 0) {
+        if (dt == 0)
             return;
-        }
 
         // Process wheel encoder data
         wheel_encoder_value_ = msg->data;
@@ -405,11 +403,10 @@ private:
         // logger.info("Wheel Encoder Value: %d, Speed: %d", wheel_encoder_value_, encoder_speed);
 
         // safety overflow 16 bit
-        if (encoder_speed > 32767) {
+        if (encoder_speed > 32767)
             encoder_speed = 32767;
-        } else if (encoder_speed < -32768) {
+        else if (encoder_speed < -32768)
             encoder_speed = -32768;
-        }
 
         encoder_position_m_ += encoder_speed * cnt_to_meter_;
         static float prev_encoder_position_m_ = encoder_position_m_;
@@ -489,7 +486,8 @@ private:
         logger.info("Received web configuration data, processing...");
 
         // Process web configuration data
-        if (msg->data.size() >= 1) {
+        if (msg->data.size() >= 1)
+        {
             k_p_wheel_ = msg->data[0];
             k_i_wheel_ = msg->data[1];
             k_d_wheel_ = msg->data[2];
@@ -543,8 +541,7 @@ private:
             min_wheel_integral_pwm_,
             wheel_base_,
             tuning,
-            K_model
-        };
+            K_model};
         pub_request_web_config_->publish(msg_pub);
     }
 
@@ -601,8 +598,7 @@ private:
             min_wheel_integral_pwm_,
             wheel_base_,
             tuning,
-            K_model
-        };
+            K_model};
         pub_request_web_config_->publish(msg);
 
         steering_dutyCycle2rad = (min_steering_deg_ DEG2RAD - max_steering_deg_ DEG2RAD) / (min_steering_pwm_ - max_steering_pwm_);
@@ -646,18 +642,19 @@ private:
 
     int8_t tuning_pwm2vel()
     {
-        const uint16_t sequence_ms[3] = { 500, 1000, 500 };
-        const uint16_t sequence_pwm[8] = { 1000, 1500, 2000, 2500, 3000, 3500, 4000, 6000 };
+        const uint16_t sequence_ms[3] = {500, 1000, 500};
+        const uint16_t sequence_pwm[8] = {1000, 1500, 2000, 2500, 3000, 3500, 4000, 6000};
         static uint8_t pwm_index = 0;
         static uint8_t sequence_index = 0;
 
-        static std::vector<float> gradient_pwm_mps = { 0 };
-        static std::vector<float> current_pwm_mps = { 0 };
+        static std::vector<float> gradient_pwm_mps = {0};
+        static std::vector<float> current_pwm_mps = {0};
 
         static uint8_t finished = 0;
         static double last_time = this->now().seconds();
 
-        if (this->now().seconds() - last_time > 10.0) {
+        if (this->now().seconds() - last_time > 10.0)
+        {
             pwm_index = 0;
             sequence_index = 0;
             gradient_pwm_mps.clear();
@@ -666,12 +663,13 @@ private:
             logger.info("Resetting PWM to Velocity tuning.");
         }
 
-        if (pwm_index >= 8) {
-            if (finished == 0) {
+        if (pwm_index >= 8)
+        {
+            if (finished == 0)
+            {
                 float average_gradient_total = 0.0;
-                for (int i = 0; i < gradient_pwm_mps.size(); i++) {
+                for (int i = 0; i < gradient_pwm_mps.size(); i++)
                     average_gradient_total += gradient_pwm_mps[i];
-                }
                 average_gradient_total /= gradient_pwm_mps.size();
                 average_gradient_total;
                 logger.info("Average Gradient Total: %.8f", average_gradient_total);
@@ -681,28 +679,29 @@ private:
             return 0;
         }
 
-        if (sequence_index == 0) {
+        if (sequence_index == 0)
+        {
             current_pwm_mps.clear();
-            if (pwm_index == 0) {
+            if (pwm_index == 0)
                 gradient_pwm_mps.clear();
-            }
             target_pwm_wheel_ = sequence_pwm[pwm_index];
-            if (counter(sequence_ms[sequence_index])) {
+            if (counter(sequence_ms[sequence_index]))
                 sequence_index++;
-            }
-        } else if (sequence_index == 1) {
+        }
+        else if (sequence_index == 1)
+        {
             target_pwm_wheel_ = sequence_pwm[pwm_index];
             current_pwm_mps.push_back((float)encoder_velocity_mps_);
-            if (counter(sequence_ms[sequence_index])) {
+            if (counter(sequence_ms[sequence_index]))
                 sequence_index++;
-            }
-        } else if (sequence_index == 2) {
+        }
+        else if (sequence_index == 2)
+        {
             target_pwm_wheel_ = sequence_pwm[pwm_index];
 
             float average_velocity = 0.0;
-            for (int i = 0; i < current_pwm_mps.size(); i++) {
+            for (int i = 0; i < current_pwm_mps.size(); i++)
                 average_velocity += current_pwm_mps[i];
-            }
 
             average_velocity /= current_pwm_mps.size();
             float gradient = average_velocity / (float)sequence_pwm[pwm_index];
@@ -720,42 +719,49 @@ private:
 
     int8_t tuning_pid_ziegler(float K_Model)
     {
-        const uint16_t sequence_ms[3] = { 500, 2000, 500 };
-        const float sequence_speed[1] = { 1.5 };
+        const uint16_t sequence_ms[3] = {500, 2000, 500};
+        const float sequence_speed[1] = {1.5};
         static uint8_t speed_index = 0;
         static uint8_t sequence_index = 0;
 
         static uint8_t finished = 0;
         static double last_time = this->now().seconds();
 
-        if (this->now().seconds() - last_time > 1000.0) {
+        if (this->now().seconds() - last_time > 1000.0)
+        {
             speed_index = 0;
             sequence_index = 0;
             finished = 0;
             logger.info("Resetting PID Ziegler tuning.");
         }
 
-        if (speed_index >= 1) {
-            if (finished == 0) {
+        if (speed_index >= 1)
+        {
+            if (finished == 0)
+            {
                 finished = 1;
                 logger.info("PID Ziegler tuning finished.");
             }
             return 0;
         }
 
-        if (sequence_index == 0) {
+        if (sequence_index == 0)
+        {
             target_pwm_wheel_ = 0;
-            if (counter(sequence_ms[sequence_index])) {
+            if (counter(sequence_ms[sequence_index]))
                 sequence_index++;
-            }
-        } else if (sequence_index == 1) {
+        }
+        else if (sequence_index == 1)
+        {
             target_pwm_wheel_ = sequence_speed[speed_index] / K_Model;
-            if (counter(sequence_ms[sequence_index])) {
+            if (counter(sequence_ms[sequence_index]))
                 sequence_index++;
-            }
-        } else if (sequence_index == 2) {
+        }
+        else if (sequence_index == 2)
+        {
             target_pwm_wheel_ = 0;
-            if (counter(sequence_ms[sequence_index])) {
+            if (counter(sequence_ms[sequence_index]))
+            {
                 sequence_index = 0;
                 speed_index++;
             }
@@ -773,14 +779,15 @@ private:
     {
         // PRBS parameters
         static const uint16_t step_duration_ms = 500; // Duration of each step
-        static const int prbs_levels[2] = { 0, 1 }; // Binary levels: 0 or 1
-        static uint8_t prbs_state = 0; // Current PRBS state (0 or 1)
-        static uint32_t prbs_seed = 0xACE1u; // LFSR seed for PRBS
+        static const int prbs_levels[2] = {0, 1};     // Binary levels: 0 or 1
+        static uint8_t prbs_state = 0;                // Current PRBS state (0 or 1)
+        static uint32_t prbs_seed = 0xACE1u;          // LFSR seed for PRBS
         static uint8_t finished = 0;
         static double last_time = this->now().seconds();
 
         // Reset if too much time has passed
-        if (this->now().seconds() - last_time > 1000.0) {
+        if (this->now().seconds() - last_time > 1000.0)
+        {
             prbs_state = 0;
             prbs_seed = 0xACE1u;
             finished = 0;
@@ -788,7 +795,8 @@ private:
         }
 
         // Generate next PRBS state using a simple 16-bit LFSR
-        auto next_prbs_bit = [&]() {
+        auto next_prbs_bit = [&]()
+        {
             unsigned lsb = prbs_seed & 1;
             prbs_seed >>= 1;
             if (lsb)
@@ -799,8 +807,10 @@ private:
         // Only run for a fixed number of steps (for example, 100 steps)
         static uint16_t step_count = 0;
         const uint16_t max_steps = 100;
-        if (step_count >= max_steps) {
-            if (!finished) {
+        if (step_count >= max_steps)
+        {
+            if (!finished)
+            {
                 finished = 1;
                 logger.info("PRBS tuning finished.");
             }
@@ -809,7 +819,8 @@ private:
 
         // Step logic
         static int current_level = 0;
-        if (counter(step_duration_ms)) {
+        if (counter(step_duration_ms))
+        {
             prbs_state = next_prbs_bit();
             current_level = prbs_levels[prbs_state];
             step_count++;
@@ -832,35 +843,40 @@ private:
         uint16_t ticks = ms * ticks_per_second / 1000;
         static uint16_t counter = 0;
 
-        if (counter < ticks) {
+        if (counter < ticks)
+        {
             counter++;
             return 0;
-        } else {
+        }
+        else
+        {
             counter = 0;
             return 1;
         }
     }
 };
 
-int main(int argc, char** argv)
+int main(int argc, char **argv)
 {
     rclcpp::init(argc, argv);
     std::shared_ptr<MotorMain2> node_MotorMain2;
 
-    try {
+    try
+    {
         node_MotorMain2 = std::make_shared<MotorMain2>();
 
         rclcpp::executors::MultiThreadedExecutor executor;
         executor.add_node(node_MotorMain2);
         executor.spin();
-    } catch (const std::exception& e) {
+    }
+    catch (const std::exception &e)
+    {
         RCLCPP_ERROR(rclcpp::get_logger("motor_main2"), "Failed to create MotorMain2 node: %s", e.what());
         rclcpp::shutdown();
     }
 
-    if (node_MotorMain2) {
+    if (node_MotorMain2)
         node_MotorMain2.reset();
-    }
 
     rclcpp::shutdown();
     return 0;
